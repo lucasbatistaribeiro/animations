@@ -1,0 +1,30 @@
+.container {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-bar {
+  height: 2px;
+  width: 200px;
+  background: lightgray;
+}
+
+.loaded {
+  height: 100%;
+  width: 100%;
+  background: #444;
+  animation: 3s linear infinite loading;
+  transform-origin: 0%;
+}
+
+@keyframes loading {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(100%);
+  }
+}
