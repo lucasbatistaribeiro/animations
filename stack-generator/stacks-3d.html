@@ -206,17 +206,28 @@ const PALETTES = [
     bands:['#2bd47d','#d7f75b','#ff5a1f','#ff2e63','#ff9ae0','#7de2ff'] },
   { name:'Ink',   bg:'#141414', top:'#f2f2f0', a:'#c9c9c4', b:'#8e8e88', mono:'#ffffff',
     bands:['#f2f2f0','#d8d8d3','#bdbdb8','#a2a29c','#87877f','#6c6c65'] },
-  { name:'Paper', bg:'#efece4', top:'#141414', a:'#3d3d3a', b:'#71716a', mono:'#141414',
+  { name:'Paper', bg:'#efece4', top:'#141414', a:'#3d3d3a', b:'#71716a',
+    mono:{ base:'#141414', bg:'#000000', to:'#6a6a6a' },
     bands:['#141414','#33332f','#4f4f4a','#6b6b64','#87877f','#a3a39a'] }
 ];
+
+/* mono: base + fundo + direção dos degraus tonais.
+   String = atalho para "degraus na direção do próprio fundo" (recuo natural).
+   Objeto = fundo e direção explícitos, para casos como preto-sobre-preto,
+   em que recuar na direção do fundo apagaria a peça inteira. */
+function monoSpec(p){
+  const m = p.mono;
+  if (typeof m === 'string') return { base:m, bg:p.bg, to:p.bg };
+  return { base:m.base, bg:m.bg || p.bg, to:m.to || m.bg || p.bg };
+}
 
 /* papéis efetivos: policromático, ou rampa tonal quando mono está ligado */
 function roles(i = S.palette){
   const p = PALETTES[i];
   if (!S.mono) return p;
-  const base = p.mono || p.top;
-  const t = f => mix(base, p.bg, f);
-  return { bg:p.bg, top:base, a:t(.27), b:t(.5), bands:[0, .12, .26, .4, .54, .66].map(t) };
+  const m = monoSpec(p);
+  const t = f => mix(m.base, m.to, f);
+  return { bg:m.bg, top:m.base, a:t(.27), b:t(.5), bands:[0, .12, .26, .4, .54, .66].map(t) };
 }
 let RO = PALETTES[0];
 
