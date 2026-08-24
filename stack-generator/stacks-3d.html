@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Stacks 3D — Pyramid · Twist · Stack · Circle</title>
+<title>Stacks 3D — Pyramid · Twist · Stack · Tower · Circle</title>
 <style>
   :root{
     --bg:#1c1c1c;
@@ -66,6 +66,8 @@
   button.go{background:var(--accent);border-color:var(--accent);color:#180b02;font-weight:700}
   button.go:hover{filter:brightness(1.08)}
   .layouts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  /* número ímpar de layouts: o último ocupa a linha inteira */
+  .layouts button:last-child:nth-child(odd){grid-column:1/-1}
   .stack{display:flex;flex-direction:column;gap:8px;margin-bottom:9px}
   .duo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -148,7 +150,7 @@
   </div>
   <p class="foot">
     Arrastar = orbitar &middot; <kbd>shift</kbd>+arrastar (ou botão direito) = mover<br>
-    scroll = zoom &middot; <kbd>espaço</kbd> play/pause &middot; <kbd>1-4</kbd> layout &middot; <kbd>M</kbd> mono<br>
+    scroll = zoom &middot; <kbd>espaço</kbd> play/pause &middot; <kbd>1-5</kbd> layout &middot; <kbd>M</kbd> mono<br>
     O WebM sai em loop perfeito: os ciclos fecham exatamente na duração.
   </p>
 </aside>
@@ -238,6 +240,7 @@ const LAYOUTS = {
   pyramid: { name:'Pyramid', label:'Níveis', gapLabel:'Recuo',  min:2, max:16, uses:['count','effector','lobes','height','gap'] },
   twist:   { name:'Twist',   label:'Placas', gapLabel:'Espaço', min:3, max:44, uses:['count','effector','lobes','height','gap'] },
   stack:   { name:'Stack',   label:'Grade',  gapLabel:'Folga',  min:2, max:22, uses:['count','effector','lobes','height','gap'] },
+  tower:   { name:'Tower',   label:'Fatias', gapLabel:'Folga',  min:2, max:40, uses:['count','effector','lobes','height','gap'] },
   circle:  { name:'Circle',  label:'Braços', gapLabel:'Folga',  min:6, max:64, uses:['count','segments','effector','lobes','height','inner','gap'] }
 };
 
@@ -337,6 +340,30 @@ function piecesStack(){
   return out;
 }
 
+/* Tower: fatias iguais empilhadas com folga entre elas. A folga é o que
+   revela uma listra do topo da placa de baixo — a listra fina que aparece
+   entre as laterais. Effector desloca as placas lateralmente (baralho
+   desalinhado); em 0 é uma coluna perfeitamente reta. */
+function piecesTower(){
+  const N = S.count, out = [];
+  const total = (S.height / 100) * 2.6;
+  const pitch = total / N;
+  const g = (S.gap / 100) * pitch * .6;
+  const thick = Math.max(pitch * .12, pitch - g);
+  const amp = (S.effector / 100) * .9;
+  for (let k = 0; k < N; k++){
+    const t = k / Math.max(1, N - 1);
+    const ph = t * Math.PI * S.lobes + S.phase;
+    const dx = amp * Math.sin(ph), dy = amp * Math.cos(ph) * .5;
+    out.push({
+      pts: rect(-1 + dx, -1 + dy, 1 + dx, 1 + dy),
+      z0: k * pitch, z1: k * pitch + thick,
+      top: topColor(t)
+    });
+  }
+  return out;
+}
+
 function piecesCircle(){
   const N = S.count, out = [];
   const half = (TAU / N) * (1 - S.gap / 100) / 2;
@@ -372,7 +399,8 @@ function piecesCircle(){
   return out;
 }
 
-const BUILDERS = { pyramid:piecesPyramid, twist:piecesTwist, stack:piecesStack, circle:piecesCircle };
+const BUILDERS = { pyramid:piecesPyramid, twist:piecesTwist, stack:piecesStack,
+                   tower:piecesTower, circle:piecesCircle };
 
 /* ---------- projeção ---------- */
 let view = { scale:1, cx:0, cy:0 };
@@ -661,6 +689,7 @@ const PRESETS = {
   pyramid: { count:6,  segments:2, effector:15, lobes:3, height:100, inner:30, gap:50, elev:34, bands:false },
   twist:   { count:22, segments:2, effector:60, lobes:2, height:150, inner:30, gap:12, elev:20, bands:true  },
   stack:   { count:9,  segments:2, effector:60, lobes:3, height:90,  inner:30, gap:16, elev:30, bands:false },
+  tower:   { count:8,  segments:2, effector:15, lobes:2, height:145, inner:30, gap:25, elev:24, bands:false },
   circle:  { count:30, segments:2, effector:72, lobes:1, height:75,  inner:26, gap:12, elev:26, bands:true  }
 };
 function setLayout(k){
@@ -740,7 +769,7 @@ document.addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 'g'){ S.guide = !S.guide; sync(); }
   if (e.key.toLowerCase() === 'n'){ S.seed = newSeed(); sync(); }
   const keys = Object.keys(LAYOUTS);
-  if (/^[1-4]$/.test(e.key)) setLayout(keys[+e.key - 1]);
+  if (/^[1-5]$/.test(e.key)) setLayout(keys[+e.key - 1]);
 });
 
 window.addEventListener('resize', () => { resize(); sync(); });
