@@ -253,7 +253,7 @@ const S = {
   layout:'pyramid',
   count:6, segments:2, effector:35, lobes:3, height:70, inner:30, gap:14,
   elev:32, zoom:100, panX:0, panY:0, rot:-45 * DEG,
-  shadow:12, palette:0, mono:false, bands:false, seed:newSeed(),
+  shadow:0, palette:0, mono:false, bands:false, seed:newSeed(),
   rotate:false, wave:true, speed:20, playing:true, phase:0,
   expFormat:'square', expSize:1080, dur:6, fps:30, cycles:1, frame:0, guide:true
 };
@@ -398,7 +398,7 @@ function piecesCircle(){
       out.push({
         pts: ccw([P(ra, a - half), P(rb, a - half), P(rb, a + half), P(ra, a + half)]),
         z0: 0, z1: armH * (.45 + .55 * (j + 1) / S.segments),
-        top: topColor(i / N), radial: true
+        top: topColor(i / N), roles: ['a', 'end', 'b', 'in']
       });
     }
   }
@@ -508,30 +508,31 @@ function poly(ctx, pts, fill){
   ctx.stroke();
 }
 
+/* Cor é propriedade da FACE, no espaço da própria peça: cada aresta do
+   footprint tem um papel fixo. Nada aqui olha para a câmera nem para a fase,
+   então nenhuma face troca de cor durante a animação — sem luz simulada.
+   Sombra também é por papel (fixa), não por orientação. */
+const ROLE_SHADE = { a:0, b:.45, end:.2, in:.6 };
+
 function prismFaces(piece){
   const { pts, z0, z1, top } = piece;
   const p = RO;
-  const ca = Math.cos(S.rot), sa = Math.sin(S.rot);
   const sh = S.shadow / 100;
   const bot = pts.map(q => project(q[0], q[1], z0));
   const cap = pts.map(q => project(q[0], q[1], z1));
-  // peça radial: a aresta na borda externa é a "ponta", e tem cor própria
-  const rad = piece.radial ? pts.map(q => Math.hypot(q[0], q[1])) : null;
-  const rmax = rad ? Math.max.apply(null, rad) - 1e-6 : 0;
   const faces = [];
   for (let i = 0; i < pts.length; i++){
     const j = (i + 1) % pts.length;
-    const dx = pts[j][0] - pts[i][0], dy = pts[j][1] - pts[i][1];
-    // normal externa de polígono CCW = (dy, -dx), rotacionada pelo yaw
-    const nx = dy * ca + dx * sa;
-    const ny = dy * sa - dx * ca;
-    const len = Math.hypot(nx, ny) || 1;
-    const f = 1 - sh * (.5 - .5 * (ny / len));
+    // papel da face: explícito na peça, ou alternado por aresta (opostas iguais)
+    const role = piece.flat ? 'flat'
+               : piece.roles ? piece.roles[i % piece.roles.length]
+               : (i % 2 ? 'b' : 'a');
+    const base = role === 'flat' ? top
+               : role === 'end'  ? (p.end || p.a)
+               : role === 'a'    ? p.a
+               : p.b;
+    const f = 1 - sh * (role === 'flat' ? .3 : ROLE_SHADE[role]);
     const q = [bot[i], bot[j], cap[j], cap[i]];
-    const isEnd = rad && rad[i] > rmax && rad[j] > rmax;
-    const base = piece.flat ? top
-               : isEnd ? (p.end || p.a)
-               : (nx >= 0 ? p.a : p.b);
     faces.push({ pts:q, fill: shade(base, f), d:(q[0].d + q[1].d + q[2].d + q[3].d) / 4 });
   }
   faces.sort((m, n) => m.d - n.d);
