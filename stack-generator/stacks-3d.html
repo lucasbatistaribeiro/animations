@@ -88,7 +88,7 @@
   <div class="row" id="r_lobes"><label for="lobes">Lóbulos</label><input type="range" id="lobes" min="1" max="12" step="1"><output id="lobesOut"></output></div>
   <div class="row" id="r_height"><label for="height">Altura</label><input type="range" id="height" min="5" max="160" step="1"><output id="heightOut"></output></div>
   <div class="row" id="r_inner"><label for="inner">Miolo</label><input type="range" id="inner" min="5" max="70" step="1"><output id="innerOut"></output></div>
-  <div class="row" id="r_gap"><label for="gap">Folga</label><input type="range" id="gap" min="0" max="70" step="1"><output id="gapOut"></output></div>
+  <div class="row" id="r_gap"><label for="gap" id="gapLabel">Folga</label><input type="range" id="gap" min="0" max="70" step="1"><output id="gapOut"></output></div>
 
   <h2>Câmera</h2><div class="sep"></div>
   <div class="row"><label for="elev">Elevação</label><input type="range" id="elev" min="6" max="90" step="1"><output id="elevOut"></output></div>
@@ -198,6 +198,8 @@ function mix(a, b, t){
 const PALETTES = [
   { name:'Stack', bg:'#1c1c1c', top:'#ffc300', a:'#ff9ae0', b:'#4361ff', mono:'#ff5a1f',
     bands:['#ff5a1f','#ffc300','#4361ff','#ff9ae0','#a9a6f5','#2bd47d'] },
+  { name:'Ziggurat', bg:'#221f1f', top:'#ffc300', a:'#4361ff', b:'#a9a6f5', mono:'#ffc300',
+    bands:['#ffc300','#4361ff','#a9a6f5','#ff9ae0','#ff5a1f','#2bd47d'] },
   { name:'Ember', bg:'#1c1c1c', top:'#ffc300', a:'#ff5a1f', b:'#4361ff', mono:'#ffc300',
     bands:['#ff5a1f','#ffc300','#4361ff','#a9a6f5','#ff9ae0','#2bd47d'] },
   { name:'Cyan',  bg:'#141a2e', top:'#7de2ff', a:'#c3b9ff', b:'#4361ff', mono:'#4361ff',
@@ -233,10 +235,10 @@ let RO = PALETTES[0];
 
 /* ---------- layouts ---------- */
 const LAYOUTS = {
-  pyramid: { name:'Pyramid', label:'Níveis', min:2, max:16, uses:['count','effector','lobes','height','gap'] },
-  twist:   { name:'Twist',   label:'Placas', min:3, max:44, uses:['count','effector','lobes','height','gap'] },
-  stack:   { name:'Stack',   label:'Grade',  min:2, max:22, uses:['count','effector','lobes','height','gap'] },
-  circle:  { name:'Circle',  label:'Braços', min:6, max:64, uses:['count','segments','effector','lobes','height','inner','gap'] }
+  pyramid: { name:'Pyramid', label:'Níveis', gapLabel:'Recuo',  min:2, max:16, uses:['count','effector','lobes','height','gap'] },
+  twist:   { name:'Twist',   label:'Placas', gapLabel:'Espaço', min:3, max:44, uses:['count','effector','lobes','height','gap'] },
+  stack:   { name:'Stack',   label:'Grade',  gapLabel:'Folga',  min:2, max:22, uses:['count','effector','lobes','height','gap'] },
+  circle:  { name:'Circle',  label:'Braços', gapLabel:'Folga',  min:6, max:64, uses:['count','segments','effector','lobes','height','inner','gap'] }
 };
 
 /* ---------- formatos de export ---------- */
@@ -278,19 +280,22 @@ function topColor(seed01){
 }
 
 /* peça = { pts, z0, z1, top } */
+/* Zigurate: placas maciças, cada uma apoiada no topo da anterior.
+   Empilhar (em vez de partir todas do chão) garante que nenhum trecho de
+   degrau fique enterrado dentro da placa de baixo — o que pintaria faixas
+   escuras sobre o terraço — e que a escada sempre suba. */
 function piecesPyramid(){
-  const L = S.count, out = [], step = 1 / L;
-  const g = (S.gap / 100) * step * .8;
+  const L = S.count, out = [];
+  const step = 1 / L;
+  const shrink = step * (.6 + (S.gap / 100) * .8);   // recuo de cada nível
+  const riser = (S.height / 100) / L;                // altura de cada degrau
+  let z = 0;
   for (let k = 0; k < L; k++){
-    const o = 1 - k * step;
-    const inn = Math.max(0, o - step + g);
-    const h = (S.height / 100) * ((k + 1) / L) * waveAt(k / L);
-    const top = topColor((k + .5) / L);
-    if (inn <= 1e-3){ out.push({ pts: rect(-o, -o, o, o), z0:0, z1:h, top }); continue; }
-    out.push({ pts: rect(-o, inn, o, o),       z0:0, z1:h, top });
-    out.push({ pts: rect(-o, -o, o, -inn),     z0:0, z1:h, top });
-    out.push({ pts: rect(-o, -inn, -inn, inn), z0:0, z1:h, top });
-    out.push({ pts: rect(inn, -inn, o, inn),   z0:0, z1:h, top });
+    const o = 1 - k * shrink;
+    if (o <= .03) break;
+    const h = Math.max(riser * .08, riser * waveAt(k / L));
+    out.push({ pts: rect(-o, -o, o, o), z0: z, z1: z + h, top: topColor((k + .5) / L) });
+    z += h;
   }
   return out;
 }
@@ -627,6 +632,7 @@ function sync(){
   const L = LAYOUTS[S.layout];
   $('count').min = L.min; $('count').max = L.max; $('count').step = 1;
   $('countLabel').textContent = L.label;
+  $('gapLabel').textContent = L.gapLabel;
   S.count = clamp(S.count, L.min, L.max);
   $('frame').max = totalFrames() - 1;
   S.frame = clamp(S.frame, 0, totalFrames() - 1);
@@ -652,7 +658,7 @@ function sync(){
 }
 
 const PRESETS = {
-  pyramid: { count:6,  segments:2, effector:35, lobes:3, height:70,  inner:30, gap:14, elev:32, bands:false },
+  pyramid: { count:6,  segments:2, effector:15, lobes:3, height:100, inner:30, gap:50, elev:34, bands:false },
   twist:   { count:22, segments:2, effector:60, lobes:2, height:150, inner:30, gap:12, elev:20, bands:true  },
   stack:   { count:9,  segments:2, effector:60, lobes:3, height:90,  inner:30, gap:16, elev:30, bands:false },
   circle:  { count:30, segments:2, effector:72, lobes:1, height:75,  inner:26, gap:12, elev:26, bands:true  }
