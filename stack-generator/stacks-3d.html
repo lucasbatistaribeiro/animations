@@ -198,19 +198,19 @@ function mix(a, b, t){
 
 /* ---------- paletas: top = tampa, a/b = laterais; mono = base tonal ---------- */
 const PALETTES = [
-  { name:'Stack', bg:'#1c1c1c', top:'#ffc300', a:'#ff9ae0', b:'#4361ff', mono:'#ff5a1f',
+  { name:'Stack', bg:'#1c1c1c', top:'#ffc300', a:'#ff9ae0', b:'#4361ff', mono:'#ff5a1f', core:'#a9a6f5',
     bands:['#ff5a1f','#ffc300','#4361ff','#ff9ae0','#a9a6f5','#2bd47d'] },
-  { name:'Ziggurat', bg:'#221f1f', top:'#ffc300', a:'#4361ff', b:'#a9a6f5', mono:'#ffc300',
+  { name:'Ziggurat', bg:'#221f1f', top:'#ffc300', a:'#4361ff', b:'#a9a6f5', mono:'#ffc300', core:'#ff9ae0',
     bands:['#ffc300','#4361ff','#a9a6f5','#ff9ae0','#ff5a1f','#2bd47d'] },
-  { name:'Ember', bg:'#1c1c1c', top:'#ffc300', a:'#ff5a1f', b:'#4361ff', mono:'#ffc300',
+  { name:'Ember', bg:'#1c1c1c', top:'#ffc300', a:'#ff5a1f', b:'#4361ff', mono:'#ffc300', core:'#a9a6f5',
     bands:['#ff5a1f','#ffc300','#4361ff','#a9a6f5','#ff9ae0','#2bd47d'] },
-  { name:'Cyan',  bg:'#141a2e', top:'#7de2ff', a:'#c3b9ff', b:'#4361ff', mono:'#4361ff',
+  { name:'Cyan',  bg:'#141a2e', top:'#7de2ff', a:'#c3b9ff', b:'#4361ff', mono:'#4361ff', core:'#ffc300',
     bands:['#4361ff','#7de2ff','#22d3a6','#ff9ae0','#c3b9ff','#ffc300'] },
-  { name:'Lime',  bg:'#101512', top:'#d7f75b', a:'#ff5a1f', b:'#2bd47d', mono:'#2bd47d',
+  { name:'Lime',  bg:'#101512', top:'#d7f75b', a:'#ff5a1f', b:'#2bd47d', mono:'#2bd47d', core:'#ff9ae0',
     bands:['#2bd47d','#d7f75b','#ff5a1f','#ff2e63','#ff9ae0','#7de2ff'] },
-  { name:'Ink',   bg:'#141414', top:'#f2f2f0', a:'#c9c9c4', b:'#8e8e88', mono:'#ffffff',
+  { name:'Ink',   bg:'#141414', top:'#f2f2f0', a:'#c9c9c4', b:'#8e8e88', mono:'#ffffff', core:'#a2a29c',
     bands:['#f2f2f0','#d8d8d3','#bdbdb8','#a2a29c','#87877f','#6c6c65'] },
-  { name:'Paper', bg:'#efece4', top:'#141414', a:'#3d3d3a', b:'#71716a',
+  { name:'Paper', bg:'#efece4', top:'#141414', a:'#3d3d3a', b:'#71716a', core:'#6b6b64',
     mono:{ base:'#454545', bg:'#000000' },
     bands:['#141414','#33332f','#4f4f4a','#6b6b64','#87877f','#a3a39a'] }
 ];
@@ -231,7 +231,8 @@ function roles(i = S.palette){
   if (!S.mono) return p;
   const m = monoSpec(p);
   const t = f => mix(m.base, m.to, f);
-  return { bg:m.bg, top:m.base, a:t(.27), b:t(.5), bands:[0, .12, .26, .4, .54, .66].map(t) };
+  return { bg:m.bg, top:m.base, a:t(.27), b:t(.5), core:t(.4),
+           bands:[0, .12, .26, .4, .54, .66].map(t) };
 }
 let RO = PALETTES[0];
 
@@ -395,7 +396,8 @@ function piecesCircle(){
     const r = r0 * (1.02 + .15 * Math.sin(a * 3 + 1.2) + .06 * cRng());
     core.push([r * Math.cos(a), r * Math.sin(a)]);
   }
-  out.push({ pts: ccw(core), z0:0, z1: Math.max(.05, (S.height / 100) * .38), top: RO.bands[4] });
+  out.push({ pts: ccw(core), z0:0, z1: Math.max(.05, (S.height / 100) * .38),
+             top: RO.core || RO.bands[4] });
   return out;
 }
 
@@ -690,7 +692,7 @@ const PRESETS = {
   twist:   { count:22, segments:2, effector:60, lobes:2, height:150, inner:30, gap:12, elev:20, bands:true  },
   stack:   { count:9,  segments:2, effector:60, lobes:3, height:90,  inner:30, gap:16, elev:30, bands:false },
   tower:   { count:8,  segments:2, effector:15, lobes:2, height:145, inner:30, gap:25, elev:24, bands:false },
-  circle:  { count:30, segments:2, effector:72, lobes:1, height:75,  inner:26, gap:12, elev:26, bands:true  }
+  circle:  { count:30, segments:1, effector:40, lobes:1, height:45,  inner:45, gap:14, elev:26, bands:false }
 };
 function setLayout(k){
   S.layout = k;
