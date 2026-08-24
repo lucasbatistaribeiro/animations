@@ -375,11 +375,13 @@ function piecesCircle(){
   const low = clamp(1 - S.effector / 100, .06, 1);
   for (let i = 0; i < N; i++){
     const a = i / N * TAU;
-    // rampa linear (dente de serra): decresce do maior ao menor ao dar a volta.
-    // Só existe com Wave ligado; sem ele todos os braços têm o mesmo tamanho.
-    const t = S.wave ? (i / N * S.lobes + S.phase / TAU) % 1 : 0;
-    const k = 1 - (1 - low) * t;
-    const r1 = clamp(r0 + (1.4 - r0) * k, r0 + .06, 1.4);
+    // O Wave modula a ALTURA, não o comprimento: todas as pontas ficam na
+    // mesma circunferência e o que muda é a extrusão. Onda triangular — sobe e
+    // desce linearmente, do maior ao menor, sem o salto do dente de serra.
+    const u = (i / N * S.lobes + S.phase / TAU) % 1;
+    const tri = 1 - Math.abs(2 * u - 1);
+    const k = S.wave ? low + (1 - low) * tri : 1;
+    const r1 = 1.4;
     const armH = Math.max(.03, (S.height / 100) * k);
     const span = r1 - r0;
     for (let j = 0; j < S.segments; j++){
@@ -400,11 +402,12 @@ function piecesCircle(){
   const M = 48, core = [];
   for (let i = 0; i < M; i++){
     const a = i / M * TAU;
-    const r = r0 * (1.02 + wob * (.18 * Math.sin(a * 3 + S.phase) + .05 * cRng()));
+    const r = r0 * (1.02 + wob * (.10 * Math.sin(a * 3 + S.phase) + .035 * cRng()));
     core.push([r * Math.cos(a), r * Math.sin(a)]);
   }
+  // flat: a parede do miolo usa a cor dele, para ler como um volume único
   out.push({ pts: ccw(core), z0:0, z1: Math.max(.05, S.height / 100),
-             top: RO.core || RO.bands[4] });
+             top: RO.core || RO.bands[4], flat: true });
   return out;
 }
 
@@ -519,7 +522,9 @@ function prismFaces(piece){
     const f = 1 - sh * (.5 - .5 * (ny / len));
     const q = [bot[i], bot[j], cap[j], cap[i]];
     const isEnd = rad && rad[i] > rmax && rad[j] > rmax;
-    const base = isEnd ? (p.end || p.a) : (nx >= 0 ? p.a : p.b);
+    const base = piece.flat ? top
+               : isEnd ? (p.end || p.a)
+               : (nx >= 0 ? p.a : p.b);
     faces.push({ pts:q, fill: shade(base, f), d:(q[0].d + q[1].d + q[2].d + q[3].d) / 4 });
   }
   faces.sort((m, n) => m.d - n.d);
@@ -704,7 +709,7 @@ const PRESETS = {
   twist:   { count:22, segments:2, effector:60, lobes:2, height:150, inner:30, gap:12, elev:20, bands:true  },
   stack:   { count:9,  segments:2, effector:60, lobes:3, height:90,  inner:30, gap:16, elev:30, bands:false },
   tower:   { count:8,  segments:2, effector:15, lobes:2, height:145, inner:30, gap:25, elev:24, bands:false },
-  circle:  { count:20, segments:1, effector:55, lobes:1, height:38,  inner:45, gap:35, elev:30, bands:false }
+  circle:  { count:20, segments:1, effector:70, lobes:1, height:52,  inner:45, gap:35, elev:34, bands:false }
 };
 function setLayout(k){
   S.layout = k;
