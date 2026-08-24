@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stacks 3D — Pyramid · Twist · Stack · Circle</title>
+<style>
+  :root{
+    --bg:#1c1c1c;
+    --panel:#141414;
+    --line:#2c2c2c;
+    --txt:#ededed;
+    --dim:#8a8a8a;
+    --accent:#ff5a1f;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--txt);overflow:hidden;
+    font:13px/1.4 ui-sans-serif,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  canvas{position:fixed;inset:0;display:block;cursor:grab}
+  canvas.drag{cursor:grabbing}
+  canvas.pan{cursor:move}
+  /* ---------- painel ---------- */
+  aside{
+    position:fixed;top:12px;left:12px;width:236px;max-height:calc(100vh - 24px);overflow-y:auto;
+    background:rgba(20,20,20,.94);border:1px solid var(--line);border-radius:8px;
+    padding:14px 16px 18px;backdrop-filter:blur(6px);
+  }
+  aside::-webkit-scrollbar{width:8px}
+  aside::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+  h2{font-size:15px;margin:20px 0 8px;font-weight:600}
+  h2:first-child{margin-top:0}
+  .sep{height:1px;background:var(--line);margin:0 0 12px}
+  .row{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+  .row.off{opacity:.32;pointer-events:none}
+  .row label{flex:0 0 64px;font-size:10px;color:var(--dim)}
+  .row input[type=range]{flex:1;min-width:0}
+  .row select{flex:1;min-width:0}
+  .row output{
+    flex:0 0 44px;text-align:center;font-size:11px;font-variant-numeric:tabular-nums;
+    border:1px solid var(--line);border-radius:4px;padding:3px 0;background:#1a1a1a;
+  }
+  input[type=range]{-webkit-appearance:none;appearance:none;height:2px;background:#3a3a3a;margin:0}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:9px;height:9px;border-radius:50%;background:var(--accent);border:0;cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{width:9px;height:9px;border:0;border-radius:50%;background:var(--accent);cursor:pointer}
+  select{
+    background:#1a1a1a;color:var(--txt);border:1px solid var(--line);border-radius:4px;
+    padding:4px 5px;font:inherit;font-size:11px;
+  }
+  .sublabel{font-size:10px;color:var(--dim);margin:0 0 8px}
+  .pals{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .pal{padding:4px;border:1px solid var(--line);border-radius:5px;background:#1a1a1a;cursor:pointer;display:flex;gap:2px}
+  .pal[aria-pressed=true]{border-color:var(--accent)}
+  .pal i{flex:1;height:12px;border-radius:2px}
+  button{
+    width:100%;background:#1f1f1f;color:var(--txt);border:1px solid var(--line);border-radius:5px;
+    padding:7px 8px;font:inherit;font-size:11px;cursor:pointer;
+  }
+  button:hover{background:#282828}
+  button:disabled{opacity:.45;cursor:default}
+  button[aria-pressed=true]{background:#343434;border-color:#4d4d4d}
+  button.go{background:var(--accent);border-color:var(--accent);color:#180b02;font-weight:700}
+  button.go:hover{filter:brightness(1.08)}
+  .layouts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .stack{display:flex;flex-direction:column;gap:8px;margin-bottom:9px}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .trio button{padding:6px 0;font-size:12px}
+  .foot{font-size:10px;color:#5f5f5f;line-height:1.7;margin:14px 0 0}
+  kbd{background:#1f1f1f;border:1px solid var(--line);border-radius:3px;padding:0 3px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<aside>
+  <h2>Layout</h2><div class="sep"></div>
+  <div class="layouts" id="layouts"></div>
+
+  <h2>Stacks</h2><div class="sep"></div>
+  <div class="row" id="r_count"><label for="count" id="countLabel">Braços</label><input type="range" id="count"><output id="countOut"></output></div>
+  <div class="row" id="r_segments"><label for="segments">Segmentos</label><input type="range" id="segments" min="1" max="5" step="1"><output id="segmentsOut"></output></div>
+  <div class="row" id="r_effector"><label for="effector">Effector</label><input type="range" id="effector" min="0" max="100" step="1"><output id="effectorOut"></output></div>
+  <div class="row" id="r_lobes"><label for="lobes">Lóbulos</label><input type="range" id="lobes" min="1" max="12" step="1"><output id="lobesOut"></output></div>
+  <div class="row" id="r_height"><label for="height">Altura</label><input type="range" id="height" min="5" max="160" step="1"><output id="heightOut"></output></div>
+  <div class="row" id="r_inner"><label for="inner">Miolo</label><input type="range" id="inner" min="5" max="70" step="1"><output id="innerOut"></output></div>
+  <div class="row" id="r_gap"><label for="gap">Folga</label><input type="range" id="gap" min="0" max="70" step="1"><output id="gapOut"></output></div>
+
+  <h2>Câmera</h2><div class="sep"></div>
+  <div class="row"><label for="elev">Elevação</label><input type="range" id="elev" min="6" max="90" step="1"><output id="elevOut"></output></div>
+  <div class="row"><label for="spin">Giro</label><input type="range" id="spin" min="-180" max="180" step="1"><output id="spinOut"></output></div>
+  <div class="row"><label for="zoom">Zoom</label><input type="range" id="zoom" min="30" max="400" step="1"><output id="zoomOut"></output></div>
+  <button id="bCenter">Centralizar câmera</button>
+
+  <h2>Colors</h2><div class="sep"></div>
+  <div class="row"><label for="shadow">Sombra</label><input type="range" id="shadow" min="0" max="50" step="1"><output id="shadowOut"></output></div>
+  <p class="sublabel">Stack palettes</p>
+  <div class="pals" id="pals"></div>
+  <div class="stack" style="margin-top:9px">
+    <button id="bMono" aria-pressed="false">Monocromático</button>
+    <button id="bBands" aria-pressed="false">Tampas em faixas</button>
+  </div>
+
+  <h2>Animate</h2><div class="sep"></div>
+  <div class="stack">
+    <button id="bRotate" aria-pressed="false">Rotate</button>
+    <button id="bWave" aria-pressed="true">Wave</button>
+  </div>
+  <div class="row"><label for="speed">Speed</label><input type="range" id="speed" min="1" max="200" step="1"><output id="speedOut"></output></div>
+  <div class="trio">
+    <button id="bPlay" title="Play">&#9654;</button>
+    <button id="bPause" title="Pause">&#10073;&#10073;</button>
+    <button id="bReset" title="Reset">&#8635;</button>
+  </div>
+
+  <h2>Export</h2><div class="sep"></div>
+  <div class="row"><label for="expFormat">Formato</label>
+    <select id="expFormat">
+      <option value="square">Quadrado 1:1</option>
+      <option value="wide">Wide 16:9</option>
+      <option value="tall">Vertical 9:16</option>
+      <option value="post">Post 4:5</option>
+      <option value="screen">Tela cheia</option>
+    </select></div>
+  <div class="row"><label for="expSize">Tamanho</label>
+    <select id="expSize">
+      <option value="720">720 px</option>
+      <option value="1080">1080 px</option>
+      <option value="1440">1440 px</option>
+      <option value="2160">2160 px</option>
+    </select></div>
+  <div class="row"><label for="dur">Duração</label><input type="range" id="dur" min="1" max="12" step="1"><output id="durOut"></output></div>
+  <div class="row"><label for="fps">FPS</label>
+    <select id="fps"><option value="24">24</option><option value="30">30</option><option value="60">60</option></select></div>
+  <div class="row"><label for="cycles">Ciclos</label><input type="range" id="cycles" min="1" max="4" step="1"><output id="cyclesOut"></output></div>
+  <div class="row"><label for="frame">Frame</label><input type="range" id="frame" min="0" max="179" step="1"><output id="frameOut"></output></div>
+  <div class="stack">
+    <button id="bGuide" aria-pressed="true">Guia de enquadramento</button>
+    <button id="bPng">Exportar PNG do frame</button>
+    <button id="bWebm" class="go">Exportar WebM</button>
+  </div>
+  <div class="stack">
+    <button id="bSeed">Nova semente</button>
+  </div>
+  <p class="foot">
+    Arrastar = orbitar &middot; <kbd>shift</kbd>+arrastar (ou botão direito) = mover<br>
+    scroll = zoom &middot; <kbd>espaço</kbd> play/pause &middot; <kbd>1-4</kbd> layout &middot; <kbd>M</kbd> mono<br>
+    O WebM sai em loop perfeito: os ciclos fecham exatamente na duração.
+  </p>
+</aside>
+
+<script>
+/* ------------------------------------------------------------------ *
+ *  Stacks 3D — quatro layouts de blocos extrudados.
+ *  Renderer próprio: projeção axonométrica + painter's algorithm.
+ *  Peça = footprint 2D (CCW) + z0/z1. Laterais coloridas pela
+ *  ORIENTAÇÃO da face; tampa por cima.
+ * ------------------------------------------------------------------ */
+
+const TAU = Math.PI * 2;
+const DEG = Math.PI / 180;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function hashStr(s){
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+const newSeed = () => Math.random().toString(36).slice(2, 7).toUpperCase();
+
+function shade(hex, f){
+  if (f >= .999) return hex;
+  const n = parseInt(hex.slice(1), 16);
+  return `rgb(${Math.round(((n >> 16) & 255) * f)},${Math.round(((n >> 8) & 255) * f)},${Math.round((n & 255) * f)})`;
+}
+/* interpola duas cores hex (0 = a, 1 = b) e devolve hex */
+function mix(a, b, t){
+  const A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16);
+  const r = Math.round(((A >> 16) & 255) * (1 - t) + ((B >> 16) & 255) * t);
+  const g = Math.round(((A >> 8) & 255) * (1 - t) + ((B >> 8) & 255) * t);
+  const c = Math.round((A & 255) * (1 - t) + (B & 255) * t);
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + c).toString(16).slice(1);
+}
+
+/* ---------- paletas: top = tampa, a/b = laterais; mono = base tonal ---------- */
+const PALETTES = [
+  { name:'Stack', bg:'#1c1c1c', top:'#ffc300', a:'#ff9ae0', b:'#4361ff', mono:'#ff5a1f',
+    bands:['#ff5a1f','#ffc300','#4361ff','#ff9ae0','#a9a6f5','#2bd47d'] },
+  { name:'Ember', bg:'#1c1c1c', top:'#ffc300', a:'#ff5a1f', b:'#4361ff', mono:'#ffc300',
+    bands:['#ff5a1f','#ffc300','#4361ff','#a9a6f5','#ff9ae0','#2bd47d'] },
+  { name:'Cyan',  bg:'#141a2e', top:'#7de2ff', a:'#c3b9ff', b:'#4361ff', mono:'#4361ff',
+    bands:['#4361ff','#7de2ff','#22d3a6','#ff9ae0','#c3b9ff','#ffc300'] },
+  { name:'Lime',  bg:'#101512', top:'#d7f75b', a:'#ff5a1f', b:'#2bd47d', mono:'#2bd47d',
+    bands:['#2bd47d','#d7f75b','#ff5a1f','#ff2e63','#ff9ae0','#7de2ff'] },
+  { name:'Ink',   bg:'#141414', top:'#f2f2f0', a:'#c9c9c4', b:'#8e8e88', mono:'#f2f2f0',
+    bands:['#f2f2f0','#d8d8d3','#bdbdb8','#a2a29c','#87877f','#6c6c65'] },
+  { name:'Paper', bg:'#efece4', top:'#141414', a:'#3d3d3a', b:'#71716a', mono:'#141414',
+    bands:['#141414','#33332f','#4f4f4a','#6b6b64','#87877f','#a3a39a'] }
+];
+
+/* papéis efetivos: policromático, ou rampa tonal quando mono está ligado */
+function roles(i = S.palette){
+  const p = PALETTES[i];
+  if (!S.mono) return p;
+  const base = p.mono || p.top;
+  const t = f => mix(base, p.bg, f);
+  return { bg:p.bg, top:base, a:t(.27), b:t(.5), bands:[0, .12, .26, .4, .54, .66].map(t) };
+}
+let RO = PALETTES[0];
+
+/* ---------- layouts ---------- */
+const LAYOUTS = {
+  pyramid: { name:'Pyramid', label:'Níveis', min:2, max:16, uses:['count','effector','lobes','height','gap'] },
+  twist:   { name:'Twist',   label:'Placas', min:3, max:44, uses:['count','effector','lobes','height','gap'] },
+  stack:   { name:'Stack',   label:'Grade',  min:2, max:22, uses:['count','effector','lobes','height','gap'] },
+  circle:  { name:'Circle',  label:'Braços', min:6, max:64, uses:['count','segments','effector','lobes','height','inner','gap'] }
+};
+
+/* ---------- formatos de export ---------- */
+const EXP_ASPECT = { square:1, wide:16/9, tall:9/16, post:4/5 };
+
+/* ---------- estado ---------- */
+const S = {
+  layout:'pyramid',
+  count:6, segments:2, effector:35, lobes:3, height:70, inner:30, gap:14,
+  elev:32, zoom:100, panX:0, panY:0, rot:-45 * DEG,
+  shadow:12, palette:0, mono:false, bands:false, seed:newSeed(),
+  rotate:false, wave:true, speed:20, playing:true, phase:0,
+  expFormat:'square', expSize:1080, dur:6, fps:30, cycles:1, frame:0, guide:true
+};
+
+const uses = k => LAYOUTS[S.layout].uses.includes(k);
+const totalFrames = () => Math.max(1, Math.round(S.dur * S.fps));
+
+/* ---------- geometria ---------- */
+function ccw(pts){
+  let a = 0;
+  for (let i = 0; i < pts.length; i++){
+    const j = (i + 1) % pts.length;
+    a += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1];
+  }
+  return a >= 0 ? pts : pts.slice().reverse();
+}
+const rect = (x0, y0, x1, y1) => ccw([[x0,y0],[x1,y0],[x1,y1],[x0,y1]]);
+function rotPts(pts, a){
+  const c = Math.cos(a), s = Math.sin(a);
+  return pts.map(([x, y]) => [x * c - y * s, x * s + y * c]);
+}
+const waveAt = v => 1 + (S.effector / 100) * Math.sin(v * Math.PI * S.lobes + S.phase);
+
+function topColor(seed01){
+  const p = RO;
+  if (!S.bands) return p.top;
+  return p.bands[Math.floor(seed01 * p.bands.length) % p.bands.length];
+}
+
+/* peça = { pts, z0, z1, top } */
+function piecesPyramid(){
+  const L = S.count, out = [], step = 1 / L;
+  const g = (S.gap / 100) * step * .8;
+  for (let k = 0; k < L; k++){
+    const o = 1 - k * step;
+    const inn = Math.max(0, o - step + g);
+    const h = (S.height / 100) * ((k + 1) / L) * waveAt(k / L);
+    const top = topColor((k + .5) / L);
+    if (inn <= 1e-3){ out.push({ pts: rect(-o, -o, o, o), z0:0, z1:h, top }); continue; }
+    out.push({ pts: rect(-o, inn, o, o),       z0:0, z1:h, top });
+    out.push({ pts: rect(-o, -o, o, -inn),     z0:0, z1:h, top });
+    out.push({ pts: rect(-o, -inn, -inn, inn), z0:0, z1:h, top });
+    out.push({ pts: rect(inn, -inn, o, inn),   z0:0, z1:h, top });
+  }
+  return out;
+}
+
+function piecesTwist(){
+  const N = S.count, out = [];
+  const thick = (S.height / 100) * 1.7 / N;
+  const g = (S.gap / 100) * thick * .7;
+  for (let k = 0; k < N; k++){
+    const t = k / N;
+    const s = .62 * (.5 + .5 * Math.abs(Math.sin(t * Math.PI * S.lobes * .5 + S.phase)));
+    const ang = (S.effector / 100) * t * TAU * .75 + S.phase * .25;
+    out.push({
+      pts: ccw(rotPts([[-s,-s],[s,-s],[s,s],[-s,s]], ang)),
+      z0: k * thick, z1: k * thick + thick - g,
+      top: topColor(t)
+    });
+  }
+  return out;
+}
+
+function piecesStack(){
+  const N = S.count, out = [];
+  const cell = 2 / N;
+  const g = (S.gap / 100) * cell * .6;
+  for (let iy = 0; iy < N; iy++){
+    for (let ix = 0; ix < N; ix++){
+      const x0 = -1 + ix * cell + g / 2, y0 = -1 + iy * cell + g / 2;
+      const cx = x0 + (cell - g) / 2, cy = y0 + (cell - g) / 2;
+      const r = Math.hypot(cx, cy) / Math.SQRT2;
+      const k = 1 + (S.effector / 100) * Math.sin(r * Math.PI * S.lobes - S.phase);
+      out.push({
+        pts: rect(x0, y0, x0 + cell - g, y0 + cell - g),
+        z0: 0, z1: Math.max(.02, (S.height / 100) * .55 * k),
+        top: topColor(r)
+      });
+    }
+  }
+  return out;
+}
+
+function piecesCircle(){
+  const N = S.count, out = [];
+  const half = (TAU / N) * (1 - S.gap / 100) / 2;
+  const r0 = S.inner / 100;
+  const low = clamp(1 - S.effector / 100, .06, 1);
+  for (let i = 0; i < N; i++){
+    const a = i / N * TAU;
+    // rampa linear (dente de serra): decresce do maior ao menor ao dar a volta
+    const t = (i / N * S.lobes + S.phase / TAU) % 1;
+    const k = 1 - (1 - low) * t;
+    const r1 = clamp(r0 + (1.4 - r0) * k, r0 + .06, 1.4);
+    const armH = Math.max(.03, (S.height / 100) * k);
+    const span = r1 - r0;
+    for (let j = 0; j < S.segments; j++){
+      const ra = r0 + span * (j / S.segments);
+      const rb = r0 + span * ((j + 1) / S.segments);
+      const P = (r, ang) => [r * Math.cos(ang), r * Math.sin(ang)];
+      out.push({
+        pts: ccw([P(ra, a - half), P(rb, a - half), P(rb, a + half), P(ra, a + half)]),
+        z0: 0, z1: armH * (.45 + .55 * (j + 1) / S.segments),
+        top: topColor(i / N)
+      });
+    }
+  }
+  const cRng = mulberry32(hashStr(S.seed + 'core'));
+  const M = 40, core = [];
+  for (let i = 0; i < M; i++){
+    const a = i / M * TAU;
+    const r = r0 * (1.02 + .15 * Math.sin(a * 3 + 1.2) + .06 * cRng());
+    core.push([r * Math.cos(a), r * Math.sin(a)]);
+  }
+  out.push({ pts: ccw(core), z0:0, z1: Math.max(.05, (S.height / 100) * .38), top: RO.bands[4] });
+  return out;
+}
+
+const BUILDERS = { pyramid:piecesPyramid, twist:piecesTwist, stack:piecesStack, circle:piecesCircle };
+
+/* ---------- projeção ---------- */
+let view = { scale:1, cx:0, cy:0 };
+
+function raw(x, y, z){
+  const ca = Math.cos(S.rot), sa = Math.sin(S.rot);
+  const rx = x * ca - y * sa, ry = x * sa + y * ca;
+  const se = Math.sin(S.elev * DEG), ce = Math.cos(S.elev * DEG);
+  return { x: rx, y: ry * se - z * ce, d: ry * ce + z * se };
+}
+const project = (x, y, z) => {
+  const r = raw(x, y, z);
+  return { x: view.cx + r.x * view.scale, y: view.cy + r.y * view.scale, d: r.d };
+};
+
+/* Enquadramento estável: bbox projetada amostrada ao longo do ciclo (e do giro,
+   quando Rotate está ligado), para a moldura não "respirar" durante a animação. */
+let FRAME = { minx:-1, maxx:1, miny:-1, maxy:1 };
+
+function computeFrame(){
+  const savedP = S.phase, savedR = S.rot;
+  const phases = [0, 1/3, 2/3].map(u => u * TAU * S.cycles);
+  const spins = S.rotate ? [0, .25, .5, .75].map(u => u * TAU) : [0];
+  let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
+  for (const dp of phases){
+    S.phase = savedP + dp;
+    const pieces = BUILDERS[S.layout]();
+    for (const ds of spins){
+      S.rot = savedR + ds;
+      for (const p of pieces) for (const q of p.pts) for (const z of [p.z0, p.z1]){
+        const r = raw(q[0], q[1], z);
+        if (r.x < minx) minx = r.x; if (r.x > maxx) maxx = r.x;
+        if (r.y < miny) miny = r.y; if (r.y > maxy) maxy = r.y;
+      }
+    }
+  }
+  S.phase = savedP; S.rot = savedR;
+  FRAME = { minx, maxx, miny, maxy };
+}
+
+/* view da tela: enquadramento estável + zoom + pan (pan em fração da largura) */
+function viewFor(W, H){
+  // zoom 100 = a cena preenche exatamente o quadro de export
+  const b = cropBox(W, H);
+  const w = Math.max(1e-3, FRAME.maxx - FRAME.minx);
+  const h = Math.max(1e-3, FRAME.maxy - FRAME.miny);
+  const s = .92 * Math.min(b.w / w, b.h / h) * (S.zoom / 100);
+  return {
+    scale: s,
+    cx: b.x + b.w / 2 - (FRAME.minx + FRAME.maxx) / 2 * s + S.panX * W,
+    cy: b.y + b.h / 2 - (FRAME.miny + FRAME.maxy) / 2 * s + S.panY * W
+  };
+}
+
+/* retângulo do guia, em px do canvas */
+function cropBox(W, H){
+  // área livre: evita o painel, para o guia nunca ficar escondido atrás dele
+  const dpr = W / Math.max(1, window.innerWidth);
+  const inset = window.innerWidth > 900 ? 264 * dpr : 0;
+  const AW = W - inset;
+  const A = EXP_ASPECT[S.expFormat] || (AW / H);
+  let w = AW * .92, h = w / A;
+  if (h > H * .92){ h = H * .92; w = h * A; }
+  return { x: inset + (AW - w) / 2, y: (H - h) / 2, w, h };
+}
+
+/* tamanho do arquivo exportado */
+function expDims(){
+  const A = EXP_ASPECT[S.expFormat] || (canvas.width / canvas.height);
+  const n = +S.expSize;                     // referência = lado menor (1080 => 1920x1080 em 16:9)
+  let w = A >= 1 ? Math.round(n * A) : n;
+  let h = A >= 1 ? n : Math.round(n / A);
+  // dimensões pares: exigência prática dos codecs de vídeo
+  return { w: w + (w % 2), h: h + (h % 2) };
+}
+
+/* ---------- desenho ---------- */
+function poly(ctx, pts, fill){
+  ctx.beginPath();
+  pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = fill;   // costura: mata os fios de antialiasing entre faces
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+function prismFaces(piece){
+  const { pts, z0, z1, top } = piece;
+  const p = RO;
+  const ca = Math.cos(S.rot), sa = Math.sin(S.rot);
+  const sh = S.shadow / 100;
+  const bot = pts.map(q => project(q[0], q[1], z0));
+  const cap = pts.map(q => project(q[0], q[1], z1));
+  const faces = [];
+  for (let i = 0; i < pts.length; i++){
+    const j = (i + 1) % pts.length;
+    const dx = pts[j][0] - pts[i][0], dy = pts[j][1] - pts[i][1];
+    // normal externa de polígono CCW = (dy, -dx), rotacionada pelo yaw
+    const nx = dy * ca + dx * sa;
+    const ny = dy * sa - dx * ca;
+    const len = Math.hypot(nx, ny) || 1;
+    const f = 1 - sh * (.5 - .5 * (ny / len));
+    const q = [bot[i], bot[j], cap[j], cap[i]];
+    faces.push({ pts:q, fill: shade(nx >= 0 ? p.a : p.b, f), d:(q[0].d + q[1].d + q[2].d + q[3].d) / 4 });
+  }
+  faces.sort((m, n) => m.d - n.d);
+  faces.push({ pts: cap, fill: top, d: Infinity });
+  return faces;
+}
+
+function drawScene(ctx, W, H, viewOverride){
+  RO = roles();
+  view = viewOverride || viewFor(W, H);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = RO.bg;
+  ctx.fillRect(0, 0, W, H);
+  const items = BUILDERS[S.layout]().map(pc => {
+    let sx = 0, sy = 0;
+    for (const q of pc.pts){ sx += q[0]; sy += q[1]; }
+    const c = raw(sx / pc.pts.length, sy / pc.pts.length, (pc.z0 + pc.z1) / 2);
+    return { d: c.d, faces: prismFaces(pc) };
+  });
+  items.sort((m, n) => m.d - n.d);
+  for (const it of items) for (const f of it.faces) poly(ctx, f.pts, f.fill);
+}
+
+/* render de export: usa a MESMA câmera da tela, recortada no guia */
+function drawExport(ctx, W, H){
+  const box = cropBox(canvas.width, canvas.height);
+  const v = viewFor(canvas.width, canvas.height);
+  const k = W / box.w;
+  drawScene(ctx, W, H, { scale: v.scale * k, cx: (v.cx - box.x) * k, cy: (v.cy - box.y) * k });
+}
+
+function drawGuide(ctx, W, H){
+  const b = cropBox(W, H);
+  ctx.save();
+  ctx.fillStyle = 'rgba(8,8,8,.5)';
+  ctx.beginPath();
+  ctx.rect(0, 0, W, H);
+  ctx.rect(b.x, b.y, b.w, b.h);
+  ctx.fill('evenodd');
+  ctx.strokeStyle = 'rgba(255,255,255,.45)';
+  ctx.lineWidth = Math.max(1, W / 1000);
+  ctx.strokeRect(b.x, b.y, b.w, b.h);
+  ctx.restore();
+}
+
+/* ---------- loop ---------- */
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let last = 0, exporting = false;
+
+function resize(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(window.innerWidth * dpr);
+  canvas.height = Math.round(window.innerHeight * dpr);
+}
+
+function frame(now){
+  const dt = last ? Math.min(now - last, 100) : 16;
+  last = now;
+  if (!exporting){
+    if (S.playing){
+      const sp = S.speed / 100;
+      if (S.rotate) S.rot += dt / 1000 * sp * .7;
+      if (S.wave) S.phase += dt / 1000 * sp * 1.6;
+    }
+    drawScene(ctx, canvas.width, canvas.height, null);
+    if (S.guide) drawGuide(ctx, canvas.width, canvas.height);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- export ---------- */
+function download(url, name, revoke){
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  if (revoke) setTimeout(() => URL.revokeObjectURL(url), 8000);
+}
+
+function exportPNG(){
+  const { w, h } = expDims();
+  const off = document.createElement('canvas');
+  off.width = w; off.height = h;
+  drawExport(off.getContext('2d'), w, h);
+  download(off.toDataURL('image/png'), `stacks3d-${S.layout}-${S.seed}-f${S.frame}.png`);
+}
+
+async function exportWebM(){
+  const types = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  const mimeType = types.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t));
+  if (!mimeType){ alert('Este navegador não suporta gravação em WebM.'); return; }
+
+  const { w, h } = expDims();
+  const off = document.createElement('canvas');
+  off.width = w; off.height = h;
+  const octx = off.getContext('2d');
+  const fps = +S.fps, total = totalFrames();
+
+  const stream = off.captureStream(0);              // 0 = frames sob demanda
+  const track = stream.getVideoTracks()[0];
+  const rec = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: Math.round(w * h * fps * .12) });
+  const chunks = [];
+  rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+  const stopped = new Promise(r => { rec.onstop = r; });
+
+  const btn = $('bWebm');
+  const savedPhase = S.phase, savedRot = S.rot, savedPlaying = S.playing;
+  exporting = true;
+  S.playing = false;
+  [...document.querySelectorAll('button')].forEach(b => b.disabled = true);
+
+  rec.start();
+  for (let f = 0; f < total; f++){
+    const u = f / total;                            // 0..1 exclusivo => loop perfeito
+    if (S.wave) S.phase = savedPhase + u * TAU * S.cycles;
+    if (S.rotate) S.rot = savedRot + u * TAU;
+    drawExport(octx, w, h);
+    track.requestFrame();
+    btn.textContent = `Gravando ${Math.round((f + 1) / total * 100)}%`;
+    await new Promise(r => setTimeout(r, 1000 / fps));
+  }
+  rec.stop();
+  await stopped;
+  track.stop();
+
+  S.phase = savedPhase; S.rot = savedRot; S.playing = savedPlaying;
+  exporting = false;
+  [...document.querySelectorAll('button')].forEach(b => b.disabled = false);
+  btn.textContent = 'Exportar WebM';
+
+  const blob = new Blob(chunks, { type: mimeType });
+  download(URL.createObjectURL(blob), `stacks3d-${S.layout}-${S.seed}-${w}x${h}.webm`, true);
+}
+
+/* ---------- UI ---------- */
+const $ = id => document.getElementById(id);
+const NUM = ['count','segments','effector','lobes','height','inner','gap',
+             'elev','spin','zoom','shadow','speed','dur','cycles','frame'];
+const SEL = ['expFormat','expSize','fps'];
+const SUFFIX = { height:'%', inner:'%', gap:'%', elev:'°', spin:'°', zoom:'%', shadow:'%', dur:'s' };
+const OPTIONAL = ['count','segments','effector','lobes','height','inner','gap'];
+
+function renderPals(){
+  $('pals').innerHTML = PALETTES.map((_, i) => {
+    const r = roles(i);
+    const chips = S.mono ? r.bands.slice(0, 5) : [r.top, r.a, r.b, r.bands[0], r.bands[5]];
+    return `<button class="pal" data-i="${i}" title="${PALETTES[i].name}" aria-pressed="${i === S.palette}">${
+      chips.map(c => `<i style="background:${c}"></i>`).join('')}</button>`;
+  }).join('');
+}
+
+function sync(){
+  const L = LAYOUTS[S.layout];
+  $('count').min = L.min; $('count').max = L.max; $('count').step = 1;
+  $('countLabel').textContent = L.label;
+  S.count = clamp(S.count, L.min, L.max);
+  $('frame').max = totalFrames() - 1;
+  S.frame = clamp(S.frame, 0, totalFrames() - 1);
+
+  NUM.forEach(k => {
+    const v = k === 'spin' ? Math.round(((S.rot / DEG) % 360 + 540) % 360 - 180) : S[k];
+    $(k).value = v;
+    $(k + 'Out').textContent =
+      k === 'speed' ? (S.speed / 100).toFixed(2) :
+      k === 'frame' ? `${S.frame}/${totalFrames() - 1}` :
+      v + (SUFFIX[k] || '');
+  });
+  SEL.forEach(k => $(k).value = S[k]);
+  OPTIONAL.forEach(k => $('r_' + k).classList.toggle('off', !uses(k)));
+  document.querySelectorAll('.lay').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === S.layout)));
+  renderPals();
+  $('bMono').setAttribute('aria-pressed', String(S.mono));
+  $('bBands').setAttribute('aria-pressed', String(S.bands));
+  $('bGuide').setAttribute('aria-pressed', String(S.guide));
+  $('bRotate').setAttribute('aria-pressed', String(S.rotate));
+  $('bWave').setAttribute('aria-pressed', String(S.wave));
+  computeFrame();
+}
+
+const PRESETS = {
+  pyramid: { count:6,  segments:2, effector:35, lobes:3, height:70,  inner:30, gap:14, elev:32, bands:false },
+  twist:   { count:22, segments:2, effector:60, lobes:2, height:150, inner:30, gap:12, elev:20, bands:true  },
+  stack:   { count:9,  segments:2, effector:60, lobes:3, height:90,  inner:30, gap:16, elev:30, bands:false },
+  circle:  { count:30, segments:2, effector:72, lobes:1, height:75,  inner:26, gap:12, elev:26, bands:true  }
+};
+function setLayout(k){
+  S.layout = k;
+  Object.assign(S, PRESETS[k]);
+  sync();
+}
+
+$('layouts').innerHTML = Object.entries(LAYOUTS).map(([k, l]) =>
+  `<button class="lay" data-k="${k}" aria-pressed="false">${l.name}</button>`).join('');
+document.querySelectorAll('.lay').forEach(b => b.addEventListener('click', () => setLayout(b.dataset.k)));
+
+$('pals').addEventListener('click', e => {
+  const b = e.target.closest('.pal');
+  if (b){ S.palette = +b.dataset.i; sync(); }
+});
+
+NUM.forEach(k => $(k).addEventListener('input', e => {
+  const v = +e.target.value;
+  if (k === 'spin'){ S.rot = v * DEG; }
+  else if (k === 'frame'){
+    S.frame = v; S.playing = false;
+    S.phase = S.frame / totalFrames() * TAU * S.cycles;   // scrub determinístico
+  } else S[k] = v;
+  sync();
+}));
+SEL.forEach(k => $(k).addEventListener('change', e => {
+  S[k] = k === 'expFormat' ? e.target.value : +e.target.value;
+  sync();
+}));
+
+$('bMono').addEventListener('click', () => { S.mono = !S.mono; sync(); });
+$('bBands').addEventListener('click', () => { S.bands = !S.bands; sync(); });
+$('bGuide').addEventListener('click', () => { S.guide = !S.guide; sync(); });
+$('bRotate').addEventListener('click', () => { S.rotate = !S.rotate; sync(); });
+$('bWave').addEventListener('click', () => { S.wave = !S.wave; sync(); });
+$('bPlay').addEventListener('click', () => { S.playing = true; });
+$('bPause').addEventListener('click', () => { S.playing = false; });
+$('bReset').addEventListener('click', () => { S.rot = -45 * DEG; S.phase = 0; S.frame = 0; setLayout(S.layout); });
+$('bCenter').addEventListener('click', () => { S.panX = 0; S.panY = 0; S.zoom = 100; sync(); });
+$('bSeed').addEventListener('click', () => { S.seed = newSeed(); sync(); });
+$('bPng').addEventListener('click', exportPNG);
+$('bWebm').addEventListener('click', exportWebM);
+
+/* orbitar / mover / zoom */
+let drag = null;
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('pointerdown', e => {
+  const pan = e.shiftKey || e.button === 1 || e.button === 2;
+  drag = { x:e.clientX, y:e.clientY, rot:S.rot, elev:S.elev, px:S.panX, py:S.panY, pan };
+  canvas.classList.add(pan ? 'pan' : 'drag');
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (drag.pan){
+    const dpr = canvas.width / window.innerWidth;
+    S.panX = drag.px + (e.clientX - drag.x) * dpr / canvas.width;
+    S.panY = drag.py + (e.clientY - drag.y) * dpr / canvas.width;
+  } else {
+    S.rot = drag.rot + (e.clientX - drag.x) * .006;
+    S.elev = clamp(drag.elev - (e.clientY - drag.y) * .18, 6, 90);
+  }
+  sync();
+});
+canvas.addEventListener('pointerup', () => { drag = null; canvas.className = ''; });
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  S.zoom = clamp(S.zoom - e.deltaY * .06, 30, 400);
+  sync();
+}, { passive:false });
+
+document.addEventListener('keydown', e => {
+  if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (e.code === 'Space'){ e.preventDefault(); S.playing = !S.playing; }
+  if (e.key.toLowerCase() === 'm'){ S.mono = !S.mono; sync(); }
+  if (e.key.toLowerCase() === 'g'){ S.guide = !S.guide; sync(); }
+  if (e.key.toLowerCase() === 'n'){ S.seed = newSeed(); sync(); }
+  const keys = Object.keys(LAYOUTS);
+  if (/^[1-4]$/.test(e.key)) setLayout(keys[+e.key - 1]);
+});
+
+window.addEventListener('resize', () => { resize(); sync(); });
+
+resize();
+setLayout('pyramid');
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
