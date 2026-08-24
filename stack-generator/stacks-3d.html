@@ -275,9 +275,6 @@ function rotPts(pts, a){
   const c = Math.cos(a), s = Math.sin(a);
   return pts.map(([x, y]) => [x * c - y * s, x * s + y * c]);
 }
-/* Wave é o efeito que altera tamanho. Com ele desligado nada modula:
-   Rotate sozinho só gira a cena, com as peças todas do mesmo tamanho. */
-const waveAt = v => S.wave ? 1 + (S.effector / 100) * Math.sin(v * Math.PI * S.lobes + S.phase) : 1;
 
 function topColor(seed01){
   const p = RO;
@@ -289,19 +286,29 @@ function topColor(seed01){
 /* Zigurate: placas maciças, cada uma apoiada no topo da anterior.
    Empilhar (em vez de partir todas do chão) garante que nenhum trecho de
    degrau fique enterrado dentro da placa de baixo — o que pintaria faixas
-   escuras sobre o terraço — e que a escada sempre suba. */
+   escuras sobre o terraço — e que a escada sempre suba.
+
+   Wave aqui GIRA os níveis: o Effector abre a torção estática entre eles
+   (o pinwheel) e a fase faz cada nível girar continuamente. O incremento
+   é de quartos de volta por ciclo, múltiplo da simetria do quadrado, para
+   o WebM continuar fechando em loop perfeito. */
 function piecesPyramid(){
   const L = S.count, out = [];
   const step = 1 / L;
   const shrink = step * (.6 + (S.gap / 100) * .8);   // recuo de cada nível
   const riser = (S.height / 100) / L;                // altura de cada degrau
+  const twist = S.wave ? (S.effector / 100) * TAU * .18 : 0;
   let z = 0;
   for (let k = 0; k < L; k++){
     const o = 1 - k * shrink;
     if (o <= .03) break;
-    const h = Math.max(riser * .08, riser * waveAt(k / L));
-    out.push({ pts: rect(-o, -o, o, o), z0: z, z1: z + h, top: topColor((k + .5) / L) });
-    z += h;
+    const ang = twist * (k / Math.max(1, L - 1)) + (S.wave ? S.phase * .25 * k : 0);
+    out.push({
+      pts: ccw(rotPts([[-o,-o],[o,-o],[o,o],[-o,o]], ang)),
+      z0: z, z1: z + riser,
+      top: topColor((k + .5) / L)
+    });
+    z += riser;
   }
   return out;
 }
@@ -434,7 +441,7 @@ let FRAME = { minx:-1, maxx:1, miny:-1, maxy:1 };
 
 function computeFrame(){
   const savedP = S.phase, savedR = S.rot;
-  const phases = [0, 1/3, 2/3].map(u => u * TAU * S.cycles);
+  const phases = [0, .2, .4, .6, .8].map(u => u * TAU * S.cycles);
   const spins = S.rotate ? [0, .25, .5, .75].map(u => u * TAU) : [0];
   let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
   for (const dp of phases){
@@ -705,7 +712,7 @@ function sync(){
 }
 
 const PRESETS = {
-  pyramid: { count:6,  segments:2, effector:15, lobes:3, height:100, inner:30, gap:50, elev:34, bands:false },
+  pyramid: { count:6,  segments:2, effector:35, lobes:3, height:100, inner:30, gap:50, elev:34, bands:false },
   twist:   { count:22, segments:2, effector:60, lobes:2, height:150, inner:30, gap:12, elev:20, bands:true  },
   stack:   { count:9,  segments:2, effector:60, lobes:3, height:90,  inner:30, gap:16, elev:30, bands:false },
   tower:   { count:8,  segments:2, effector:15, lobes:2, height:145, inner:30, gap:25, elev:24, bands:false },
