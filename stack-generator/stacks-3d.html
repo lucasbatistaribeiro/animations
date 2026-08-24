@@ -198,19 +198,19 @@ function mix(a, b, t){
 
 /* ---------- paletas: top = tampa, a/b = laterais; mono = base tonal ---------- */
 const PALETTES = [
-  { name:'Stack', bg:'#1c1c1c', top:'#ffc300', a:'#ff9ae0', b:'#4361ff', mono:'#ff5a1f', core:'#a9a6f5',
+  { name:'Stack', bg:'#1c1c1c', top:'#ffc300', a:'#ff9ae0', b:'#4361ff', mono:'#ff5a1f', core:'#a9a6f5', end:'#ff5a1f',
     bands:['#ff5a1f','#ffc300','#4361ff','#ff9ae0','#a9a6f5','#2bd47d'] },
-  { name:'Ziggurat', bg:'#221f1f', top:'#ffc300', a:'#4361ff', b:'#a9a6f5', mono:'#ffc300', core:'#ff9ae0',
+  { name:'Ziggurat', bg:'#221f1f', top:'#ffc300', a:'#4361ff', b:'#a9a6f5', mono:'#ffc300', core:'#ff9ae0', end:'#ff9ae0',
     bands:['#ffc300','#4361ff','#a9a6f5','#ff9ae0','#ff5a1f','#2bd47d'] },
-  { name:'Ember', bg:'#1c1c1c', top:'#ffc300', a:'#ff5a1f', b:'#4361ff', mono:'#ffc300', core:'#a9a6f5',
+  { name:'Ember', bg:'#1c1c1c', top:'#ffc300', a:'#ff5a1f', b:'#4361ff', mono:'#ffc300', core:'#a9a6f5', end:'#ff9ae0',
     bands:['#ff5a1f','#ffc300','#4361ff','#a9a6f5','#ff9ae0','#2bd47d'] },
-  { name:'Cyan',  bg:'#141a2e', top:'#7de2ff', a:'#c3b9ff', b:'#4361ff', mono:'#4361ff', core:'#ffc300',
+  { name:'Cyan',  bg:'#141a2e', top:'#7de2ff', a:'#c3b9ff', b:'#4361ff', mono:'#4361ff', core:'#ffc300', end:'#22d3a6',
     bands:['#4361ff','#7de2ff','#22d3a6','#ff9ae0','#c3b9ff','#ffc300'] },
-  { name:'Lime',  bg:'#101512', top:'#d7f75b', a:'#ff5a1f', b:'#2bd47d', mono:'#2bd47d', core:'#ff9ae0',
+  { name:'Lime',  bg:'#101512', top:'#d7f75b', a:'#ff5a1f', b:'#2bd47d', mono:'#2bd47d', core:'#ff9ae0', end:'#ff2e63',
     bands:['#2bd47d','#d7f75b','#ff5a1f','#ff2e63','#ff9ae0','#7de2ff'] },
-  { name:'Ink',   bg:'#141414', top:'#f2f2f0', a:'#c9c9c4', b:'#8e8e88', mono:'#ffffff', core:'#a2a29c',
+  { name:'Ink',   bg:'#141414', top:'#f2f2f0', a:'#c9c9c4', b:'#8e8e88', mono:'#ffffff', core:'#a2a29c', end:'#bdbdb8',
     bands:['#f2f2f0','#d8d8d3','#bdbdb8','#a2a29c','#87877f','#6c6c65'] },
-  { name:'Paper', bg:'#efece4', top:'#141414', a:'#3d3d3a', b:'#71716a', core:'#6b6b64',
+  { name:'Paper', bg:'#efece4', top:'#141414', a:'#3d3d3a', b:'#71716a', core:'#6b6b64', end:'#4f4f4a',
     mono:{ base:'#454545', bg:'#000000' },
     bands:['#141414','#33332f','#4f4f4a','#6b6b64','#87877f','#a3a39a'] }
 ];
@@ -231,7 +231,7 @@ function roles(i = S.palette){
   if (!S.mono) return p;
   const m = monoSpec(p);
   const t = f => mix(m.base, m.to, f);
-  return { bg:m.bg, top:m.base, a:t(.27), b:t(.5), core:t(.4),
+  return { bg:m.bg, top:m.base, a:t(.27), b:t(.5), core:t(.4), end:t(.38),
            bands:[0, .12, .26, .4, .54, .66].map(t) };
 }
 let RO = PALETTES[0];
@@ -275,7 +275,9 @@ function rotPts(pts, a){
   const c = Math.cos(a), s = Math.sin(a);
   return pts.map(([x, y]) => [x * c - y * s, x * s + y * c]);
 }
-const waveAt = v => 1 + (S.effector / 100) * Math.sin(v * Math.PI * S.lobes + S.phase);
+/* Wave é o efeito que altera tamanho. Com ele desligado nada modula:
+   Rotate sozinho só gira a cena, com as peças todas do mesmo tamanho. */
+const waveAt = v => S.wave ? 1 + (S.effector / 100) * Math.sin(v * Math.PI * S.lobes + S.phase) : 1;
 
 function topColor(seed01){
   const p = RO;
@@ -310,7 +312,8 @@ function piecesTwist(){
   const g = (S.gap / 100) * thick * .7;
   for (let k = 0; k < N; k++){
     const t = k / N;
-    const s = .62 * (.5 + .5 * Math.abs(Math.sin(t * Math.PI * S.lobes * .5 + S.phase)));
+    const mod = S.wave ? Math.abs(Math.sin(t * Math.PI * S.lobes * .5 + S.phase)) : 1;
+    const s = .62 * (.5 + .5 * mod);
     const ang = (S.effector / 100) * t * TAU * .75 + S.phase * .25;
     out.push({
       pts: ccw(rotPts([[-s,-s],[s,-s],[s,s],[-s,s]], ang)),
@@ -330,7 +333,7 @@ function piecesStack(){
       const x0 = -1 + ix * cell + g / 2, y0 = -1 + iy * cell + g / 2;
       const cx = x0 + (cell - g) / 2, cy = y0 + (cell - g) / 2;
       const r = Math.hypot(cx, cy) / Math.SQRT2;
-      const k = 1 + (S.effector / 100) * Math.sin(r * Math.PI * S.lobes - S.phase);
+      const k = 1 + (S.wave ? S.effector / 100 : 0) * Math.sin(r * Math.PI * S.lobes - S.phase);
       out.push({
         pts: rect(x0, y0, x0 + cell - g, y0 + cell - g),
         z0: 0, z1: Math.max(.02, (S.height / 100) * .55 * k),
@@ -351,7 +354,7 @@ function piecesTower(){
   const pitch = total / N;
   const g = (S.gap / 100) * pitch * .6;
   const thick = Math.max(pitch * .12, pitch - g);
-  const amp = (S.effector / 100) * .9;
+  const amp = (S.wave ? S.effector / 100 : 0) * .9;
   for (let k = 0; k < N; k++){
     const t = k / Math.max(1, N - 1);
     const ph = t * Math.PI * S.lobes + S.phase;
@@ -372,8 +375,9 @@ function piecesCircle(){
   const low = clamp(1 - S.effector / 100, .06, 1);
   for (let i = 0; i < N; i++){
     const a = i / N * TAU;
-    // rampa linear (dente de serra): decresce do maior ao menor ao dar a volta
-    const t = (i / N * S.lobes + S.phase / TAU) % 1;
+    // rampa linear (dente de serra): decresce do maior ao menor ao dar a volta.
+    // Só existe com Wave ligado; sem ele todos os braços têm o mesmo tamanho.
+    const t = S.wave ? (i / N * S.lobes + S.phase / TAU) % 1 : 0;
     const k = 1 - (1 - low) * t;
     const r1 = clamp(r0 + (1.4 - r0) * k, r0 + .06, 1.4);
     const armH = Math.max(.03, (S.height / 100) * k);
@@ -385,18 +389,21 @@ function piecesCircle(){
       out.push({
         pts: ccw([P(ra, a - half), P(rb, a - half), P(rb, a + half), P(ra, a + half)]),
         z0: 0, z1: armH * (.45 + .55 * (j + 1) / S.segments),
-        top: topColor(i / N)
+        top: topColor(i / N), radial: true
       });
     }
   }
+  // Miolo: disco limpo em repouso; deforma junto com o Wave. A altura acompanha
+  // o braço mais alto, para esconder as pontas internas das pétalas.
   const cRng = mulberry32(hashStr(S.seed + 'core'));
-  const M = 40, core = [];
+  const wob = S.wave ? (S.effector / 100) : 0;
+  const M = 48, core = [];
   for (let i = 0; i < M; i++){
     const a = i / M * TAU;
-    const r = r0 * (1.02 + .15 * Math.sin(a * 3 + 1.2) + .06 * cRng());
+    const r = r0 * (1.02 + wob * (.18 * Math.sin(a * 3 + S.phase) + .05 * cRng()));
     core.push([r * Math.cos(a), r * Math.sin(a)]);
   }
-  out.push({ pts: ccw(core), z0:0, z1: Math.max(.05, (S.height / 100) * .38),
+  out.push({ pts: ccw(core), z0:0, z1: Math.max(.05, S.height / 100),
              top: RO.core || RO.bands[4] });
   return out;
 }
@@ -498,6 +505,9 @@ function prismFaces(piece){
   const sh = S.shadow / 100;
   const bot = pts.map(q => project(q[0], q[1], z0));
   const cap = pts.map(q => project(q[0], q[1], z1));
+  // peça radial: a aresta na borda externa é a "ponta", e tem cor própria
+  const rad = piece.radial ? pts.map(q => Math.hypot(q[0], q[1])) : null;
+  const rmax = rad ? Math.max.apply(null, rad) - 1e-6 : 0;
   const faces = [];
   for (let i = 0; i < pts.length; i++){
     const j = (i + 1) % pts.length;
@@ -508,7 +518,9 @@ function prismFaces(piece){
     const len = Math.hypot(nx, ny) || 1;
     const f = 1 - sh * (.5 - .5 * (ny / len));
     const q = [bot[i], bot[j], cap[j], cap[i]];
-    faces.push({ pts:q, fill: shade(nx >= 0 ? p.a : p.b, f), d:(q[0].d + q[1].d + q[2].d + q[3].d) / 4 });
+    const isEnd = rad && rad[i] > rmax && rad[j] > rmax;
+    const base = isEnd ? (p.end || p.a) : (nx >= 0 ? p.a : p.b);
+    faces.push({ pts:q, fill: shade(base, f), d:(q[0].d + q[1].d + q[2].d + q[3].d) / 4 });
   }
   faces.sort((m, n) => m.d - n.d);
   faces.push({ pts: cap, fill: top, d: Infinity });
@@ -692,7 +704,7 @@ const PRESETS = {
   twist:   { count:22, segments:2, effector:60, lobes:2, height:150, inner:30, gap:12, elev:20, bands:true  },
   stack:   { count:9,  segments:2, effector:60, lobes:3, height:90,  inner:30, gap:16, elev:30, bands:false },
   tower:   { count:8,  segments:2, effector:15, lobes:2, height:145, inner:30, gap:25, elev:24, bands:false },
-  circle:  { count:30, segments:1, effector:40, lobes:1, height:45,  inner:45, gap:14, elev:26, bands:false }
+  circle:  { count:20, segments:1, effector:55, lobes:1, height:38,  inner:45, gap:35, elev:30, bands:false }
 };
 function setLayout(k){
   S.layout = k;
