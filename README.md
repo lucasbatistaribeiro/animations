@@ -6,7 +6,7 @@ Dois geradores de assets: formas geométricas que se reformatam, reorganizam e r
 
 | | |
 |---|---|
-| [Arc Bands 2D](https://lucasbatistaribeiro.github.io/animations/stack-generator/) | Faixas de cor chapada delimitadas por arcos |
+| [Bands 2D](https://lucasbatistaribeiro.github.io/animations/stack-generator/) | Faixas de cor chapada: arcos ou código de barras |
 | [Stacks 3D](https://lucasbatistaribeiro.github.io/animations/stack-generator/stacks-3d.html) | Blocos extrudados em projeção axonométrica, cinco layouts |
 
 Cada gerador é **um arquivo HTML autocontido**: sem dependências, sem build, sem servidor. Dá para abrir direto do disco — só o "Copiar link" e os downloads exigem `http(s)`, por causa das restrições de contexto seguro do navegador.
@@ -19,7 +19,7 @@ Cada gerador é **um arquivo HTML autocontido**: sem dependências, sem build, s
 .
 ├── index.html                    # capa servida pelo GitHub Pages
 ├── stack-generator/
-│   ├── index.html                # Arc Bands 2D
+│   ├── index.html                # Bands 2D
 │   └── stacks-3d.html            # Stacks 3D
 ├── html.html                     # demo antigo: barra de progresso em CSS
 ├── style.css                     # css do demo antigo
@@ -31,16 +31,18 @@ O Pages serve a branch `main` a partir da raiz.
 
 ---
 
-## Arc Bands 2D
+## Bands 2D
 
-A primitiva do sistema não é a faixa: é o **arco**. Cada arco pinta todo o meio-plano atrás de si, e a fila é pintada do último para o primeiro, alternando acento e fundo. Cada arco cobre o anterior, e o que sobra entre dois vizinhos é uma faixa de altura cheia — reta de um lado, curva do outro. Nenhuma faixa é desenhada diretamente.
+Dois layouts sobre a mesma ideia: uma fila de fronteiras divide o quadro em faixas de cor chapada. **Em nenhum dos dois a faixa é desenhada diretamente** — ela é o que sobra entre duas fronteiras.
 
-Duas consequências úteis dessa construção:
+### Layout: Arc Bands
 
-- as faixas **não afinam** até virar ponta, como aconteceria com discos completos: elas chegam ao topo e à base com largura;
+A fronteira é um **arco**. Cada arco pinta todo o meio-plano atrás de si, e a fila é pintada do último para o primeiro, alternando acento e fundo. Cada arco cobre o anterior, e o que sobra entre dois vizinhos é uma faixa de altura cheia — reta de um lado, curva do outro.
+
+Duas consequências úteis:
+
+- as faixas **não afinam** até virar ponta, como aconteceria com discos completos: chegam ao topo e à base com largura;
 - o corte de cada arco na linha do meio fica exatamente um `passo` à frente do anterior — o raio se cancela na conta. Ou seja, **`Passo` controla a largura das faixas e `Raio` controla só a curvatura**, sem um interferir no outro.
-
-### Controles
 
 | | |
 |---|---|
@@ -49,14 +51,30 @@ Duas consequências úteis dessa construção:
 | **Decaimento** | como o raio muda de um arco para o próximo. Perto de 100% os arcos ficam paralelos; longe disso as curvaturas divergem e as faixas se estrangulam nas pontas |
 | **Passo** | distância entre cortes, isto é, a largura das faixas. Aceita negativo, e a fila inverte o sentido |
 | **Início** | onde o primeiro arco corta o quadro |
-| **Ângulo** | direção da fila: faixas verticais, horizontais ou diagonais |
 | **Origem** | desloca o centro dos arcos na perpendicular, inclinando a composição |
-| **Formato** | 16:9, 1:1, 9:16, 4:5, 3:1 |
-| **Animação** | `deslizar` a fila vai e volta · `sanfona` o passo abre e fecha · `pulsar` o raio respira · `girar` a direção roda · estático |
-| **Cores** | 6 paletas, em duas cores (acento e fundo) ou usando a paleta inteira, uma cor por faixa |
-| **Semente** | irregulariza os cortes e as curvaturas sem sair do sistema |
 
-`espaço` gera · `F` congela · `E` exporta PNG · clique na arte põe o primeiro corte ali.
+### Layout: Barcode
+
+A fronteira é um **corte reto**. Cada célula tem um peso e uma proporção de tinta, e essa proporção cai geometricamente ao longo da fila: densa de um lado, rarefeita do outro. Os pesos são normalizados no fim, então **a fila preenche o quadro exato** em qualquer contagem, com qualquer jitter.
+
+| | |
+|---|---|
+| **Barras** | quantas células |
+| **Tinta** | proporção de tinta na primeira célula |
+| **Progressão** | fator geométrico da queda. 100% mantém o ritmo constante; abaixo disso a tinta afina e o papel engorda ao longo da fila |
+| **Variação** | irregularidade dos pesos das células, a partir da semente |
+
+### Comum aos dois
+
+| | |
+|---|---|
+| **Ângulo** | direção da fila: faixas verticais, horizontais ou diagonais |
+| **Formato** | 16:9, 1:1, 9:16, 4:5, 3:1 |
+| **Animação** | `deslizar` a fila vai e volta · `sanfona` os pesos abrem e fecham · `pulsar` raio ou tinta respira · `girar` a direção roda · estático |
+| **Cores** | 7 paletas, em duas cores (acento e fundo) ou usando a paleta inteira, uma cor por faixa |
+| **Semente** | irregulariza a fila sem sair do sistema |
+
+`espaço` gera · `F` congela · `E` exporta PNG · `1` e `2` trocam de layout · clique na arte move o primeiro corte.
 
 ### Export
 
