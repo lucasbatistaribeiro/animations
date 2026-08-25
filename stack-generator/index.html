@@ -319,7 +319,10 @@ const pal = () => PALETTES[S.palette];
 /* jitter por semente: quebra a regularidade da fila sem sair do sistema */
 function jitters(){
   const rng = mulberry32(hashStr(S.seed));
-  return Array.from({ length: 32 }, () => ({ r: .9 + rng() * .2, o: (rng() - .5) * .7 }));
+  // 64 entradas: tem de cobrir a maior contagem de qualquer layout (Barras
+  // chega a 48), porque o modo Caindo indexa por i % n para manter o período
+  // do padrão igual a n — e com isso o loop fecha.
+  return Array.from({ length: 64 }, () => ({ r: .9 + rng() * .2, o: (rng() - .5) * .7 }));
 }
 let JIT = jitters();
 
@@ -388,7 +391,9 @@ function barList(W, H){
     };
     const bar = u => {
       const duty = clamp(duty0 * Math.pow(fall, u) * jit(u), .01, .99);
-      return { x: -L / 2 + base * u, w: base * duty, fill: cor(Math.round(u)) };
+      // piso de meio pixel: com contagem alta e progressão forte a cauda
+      // ficaria sub-pixel e o quadro pareceria vazio
+      return { x: -L / 2 + base * u, w: Math.max(base * duty, .6), fill: cor(Math.round(u)) };
     };
     const out = [bar(0)];                             // o apoio
     for (let i = 0; i < n; i++) out.push(bar(i + frac));
@@ -422,7 +427,7 @@ function barList(W, H){
   while (x < L / 2){
     const c = cells[k % n];
     const w = c.w * scale;
-    if (x + w > -L / 2) out.push({ x, w: w * c.duty, fill: cor(k) });
+    if (x + w > -L / 2) out.push({ x, w: Math.max(w * c.duty, .6), fill: cor(k) });
     x += w;
     k++;
   }
@@ -480,15 +485,21 @@ function resize(){
 }
 
 function frame(now){
+  // agenda antes de desenhar: uma exceção no meio do quadro não pode deixar
+  // o gerador congelado para sempre
+  requestAnimationFrame(frame);
   const dt = last ? Math.min(now - last, 120) : 16;
   last = now;
+  try {
   if (!S.frozen && S.mode !== 'off'){
     S.phase += dt / 1000 * (S.speed / 100) * 1.6;
     if (S.mode === 'spin' && S.layout !== 'bars')
       S.angle = ((S.angle + dt / 1000 * (S.speed / 100) * 24 + 180) % 360) - 180;
   }
   drawScene(ctx, canvas.width, canvas.height);
-  requestAnimationFrame(frame);
+  } catch (e){
+    console.error('quadro falhou:', e);
+  }
 }
 
 /* ---------- exportação ---------- */
