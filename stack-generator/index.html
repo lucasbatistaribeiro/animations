@@ -3,21 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Stack Builder — gerador generativo de blocos</title>
+<title>Arc Bands — gerador de arcos</title>
 <style>
   :root{
-    --ink:#0c0d0e;
     --panel:#111314;
     --line:#26292b;
     --txt:#e7e9ea;
     --dim:#8b9296;
-    --accent:#f48024;
+    --accent:#e879f9;
     --radius:2px;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
   body{
-    margin:0;background:var(--ink);color:var(--txt);
+    margin:0;background:#0c0d0e;color:var(--txt);
     font:14px/1.4 ui-sans-serif,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     display:flex;overflow:hidden;
   }
@@ -27,8 +26,9 @@
     background:var(--panel);border-right:1px solid var(--line);
     padding:22px 20px 40px;
   }
+  aside::-webkit-scrollbar{width:8px}
+  aside::-webkit-scrollbar-thumb{background:#2f3436;border-radius:4px}
   .brand{display:flex;align-items:center;gap:10px;margin-bottom:4px}
-  .brand svg{display:block}
   h1{font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:0;font-weight:700}
   .tag{color:var(--dim);font-size:11px;letter-spacing:.06em;margin:0 0 22px}
   fieldset{border:0;padding:0;margin:0 0 20px}
@@ -38,7 +38,7 @@
   }
   .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
   .row label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
-  .row output{font-variant-numeric:tabular-nums;font-size:11px;color:var(--txt);min-width:42px;text-align:right}
+  .row output{font-variant-numeric:tabular-nums;font-size:11px;color:var(--txt);min-width:46px;text-align:right}
   input[type=range]{
     -webkit-appearance:none;appearance:none;width:100%;height:2px;background:#33383b;margin:6px 0 14px;
   }
@@ -59,7 +59,8 @@
     padding:9px 10px;font:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
   }
   button:hover{border-color:#4a5052;background:#222628}
-  button.primary{background:var(--accent);border-color:var(--accent);color:#160c02;font-weight:700}
+  button[aria-pressed=true]{background:#2c3033;border-color:#4a5052}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#2b0b2f;font-weight:700}
   button.primary:hover{filter:brightness(1.08)}
   .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -68,6 +69,8 @@
   .sw .chips{display:flex;height:16px;overflow:hidden;border-radius:1px}
   .sw .chips i{flex:1}
   .sw em{display:block;font-style:normal;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:5px}
+  .field{margin-bottom:9px}
+  .field span{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
   .hint{font-size:10px;line-height:1.7;color:#666d70;letter-spacing:.04em;margin-top:18px}
   .hint kbd{background:#1a1d1f;border:1px solid var(--line);border-radius:2px;padding:1px 4px;font-size:9px}
   /* ---------- palco ---------- */
@@ -91,29 +94,33 @@
 <aside>
   <div class="brand">
     <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-      <rect x="10" y="1" width="11" height="3.4" fill="#f48024"/>
-      <rect x="6" y="7" width="15" height="3.4" fill="#f48024"/>
-      <rect x="2" y="13" width="19" height="3.4" fill="#f48024"/>
-      <rect x="1" y="18.6" width="20" height="2.4" fill="#8b9296"/>
+      <path d="M0 0h9a11 11 0 010 22H0z" fill="#e879f9"/>
+      <path d="M11 1a10 10 0 010 20z" fill="#e879f9"/>
     </svg>
-    <h1>Stack Builder</h1>
+    <h1>Arc Bands</h1>
   </div>
-  <p class="tag">Sistema generativo de blocos — reformata, reorganiza, reconstrói.</p>
+  <p class="tag">Arcos que se cobrem e viram faixas de borda curva.</p>
 
   <fieldset>
     <legend>Composição</legend>
-    <div class="row"><label for="cols">Colunas</label><output id="colsOut"></output></div>
-    <input type="range" id="cols" min="3" max="36" step="1">
-    <div class="row"><label for="density">Densidade</label><output id="densityOut"></output></div>
-    <input type="range" id="density" min="20" max="100" step="1">
-    <div class="row"><label for="gap">Respiro</label><output id="gapOut"></output></div>
-    <input type="range" id="gap" min="0" max="40" step="1">
-    <div class="row"><label for="variety">Variedade</label><output id="varietyOut"></output></div>
-    <input type="range" id="variety" min="0" max="100" step="1">
+    <div class="row"><label for="count">Arcos</label><output id="countOut"></output></div>
+    <input type="range" id="count" min="2" max="24" step="1">
+    <div class="row"><label for="radius">Raio</label><output id="radiusOut"></output></div>
+    <input type="range" id="radius" min="20" max="300" step="1">
+    <div class="row"><label for="decay">Decaimento</label><output id="decayOut"></output></div>
+    <input type="range" id="decay" min="50" max="130" step="1">
+    <div class="row"><label for="step">Passo</label><output id="stepOut"></output></div>
+    <input type="range" id="step" min="-20" max="60" step="1">
+    <div class="row"><label for="start">Início</label><output id="startOut"></output></div>
+    <input type="range" id="start" min="-40" max="130" step="1">
+    <div class="row"><label for="angle">Ângulo</label><output id="angleOut"></output></div>
+    <input type="range" id="angle" min="-180" max="180" step="1">
+    <div class="row"><label for="origin">Origem</label><output id="originOut"></output></div>
+    <input type="range" id="origin" min="0" max="100" step="1">
     <div class="row"><label for="format">Formato</label></div>
     <select id="format">
-      <option value="square">Quadrado 1:1</option>
       <option value="wide">Wide 16:9</option>
+      <option value="square">Quadrado 1:1</option>
       <option value="tall">Vertical 9:16</option>
       <option value="post">Post 4:5</option>
       <option value="banner">Banner 3:1</option>
@@ -122,30 +129,36 @@
 
   <fieldset>
     <legend>Movimento</legend>
-    <div class="row"><label for="mode">Modo</label></div>
+    <div class="row"><label for="mode">Animação</label></div>
     <select id="mode">
-      <option value="rebuild">Rebuild — blocos aleatórios</option>
-      <option value="cascade">Cascade — onda diagonal</option>
-      <option value="columns">Columns — coluna a coluna</option>
-      <option value="rows">Rows — linha a linha</option>
-      <option value="shuffle">Shuffle — troca de posições</option>
+      <option value="slide">Deslizar — a fila vai e volta</option>
+      <option value="accordion">Sanfona — o passo abre e fecha</option>
+      <option value="pulse">Pulsar — o raio respira</option>
+      <option value="spin">Girar — a direção roda</option>
       <option value="off">Estático</option>
     </select>
-    <div class="row" style="margin-top:12px"><label for="speed">Ritmo</label><output id="speedOut"></output></div>
-    <input type="range" id="speed" min="1" max="60" step="1">
-    <div class="row"><label for="churn">Intensidade</label><output id="churnOut"></output></div>
-    <input type="range" id="churn" min="1" max="60" step="1">
-    <div class="row"><label for="transition">Transição</label></div>
-    <select id="transition">
-      <option value="slide">Slide</option>
-      <option value="pop">Pop</option>
-      <option value="cut">Cut</option>
-    </select>
+    <div class="row" style="margin-top:12px"><label for="amount">Intensidade</label><output id="amountOut"></output></div>
+    <input type="range" id="amount" min="0" max="100" step="1">
+    <div class="row"><label for="speed">Ritmo</label><output id="speedOut"></output></div>
+    <input type="range" id="speed" min="1" max="80" step="1">
   </fieldset>
 
   <fieldset>
-    <span class="grouplabel">Paleta</span>
+    <span class="grouplabel">Cores</span>
     <div class="swatches" id="palettes"></div>
+    <div class="btns" style="margin-top:9px">
+      <button id="bTwo" aria-pressed="true">Duas cores</button>
+      <button id="bMulti" aria-pressed="false">Paleta</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <span class="grouplabel">Texto</span>
+    <div class="field"><span>Rótulo</span><input type="text" id="label" spellcheck="false"></div>
+    <div class="field"><span>Título (use | para quebrar linha)</span><input type="text" id="text" spellcheck="false"></div>
+    <div class="row"><label for="textSize">Corpo</label><output id="textSizeOut"></output></div>
+    <input type="range" id="textSize" min="2" max="14" step="1">
+    <button id="bText" aria-pressed="true">Mostrar texto</button>
   </fieldset>
 
   <fieldset>
@@ -170,7 +183,7 @@
 
   <p class="hint">
     <kbd>espaço</kbd> gerar &middot; <kbd>F</kbd> congelar &middot; <kbd>E</kbd> exportar PNG<br>
-    Clique na arte para reconstruir os blocos sob o cursor.
+    Clique na arte para pôr o primeiro corte ali.
   </p>
 </aside>
 
@@ -178,19 +191,25 @@
   <div class="stage"><canvas id="c"></canvas></div>
   <div class="meta">
     <span>semente <b id="mSeed">—</b></span>
-    <span>grade <b id="mGrid">—</b></span>
-    <span>blocos <b id="mCells">—</b></span>
+    <span>arcos <b id="mArcs">—</b></span>
+    <span>raio <b id="mR">—</b></span>
   </div>
 </main>
 
 <script>
 /* ------------------------------------------------------------------ *
- *  Stack Builder — gerador generativo baseado em blocos construtivos
+ *  Arc Bands — faixas delimitadas por arcos.
+ *
+ *  A primitiva não é a faixa: é o ARCO. Cada arco pinta todo o meio-plano
+ *  atrás de si, e a fila é pintada do último para o primeiro, alternando
+ *  acento e fundo. Cada arco cobre o anterior e o que sobra entre dois
+ *  vizinhos é uma faixa de altura cheia — reta de um lado, curva do outro.
+ *  Nenhuma faixa é desenhada diretamente.
  * ------------------------------------------------------------------ */
 
 const TAU = Math.PI * 2;
+const DEG = Math.PI / 180;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const easeInOut = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 function mulberry32(a){
   return function(){
@@ -207,230 +226,128 @@ function hashStr(s){
 }
 const newSeed = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 
-/* ---------- canetas: a mesma geometria serve canvas e SVG ---------- */
-function CanvasPen(){
-  const p = new Path2D();
-  return {
-    path: p,
-    rect: (x, y, w, h) => p.rect(x, y, w, h),
-    rectR: (x, y, w, h) => { p.moveTo(x, y); p.lineTo(x, y + h); p.lineTo(x + w, y + h); p.lineTo(x + w, y); p.closePath(); },
-    poly: pts => { pts.forEach(([x, y], i) => i ? p.lineTo(x, y) : p.moveTo(x, y)); p.closePath(); },
-    pie: (cx, cy, r, a0, a1) => {
-      p.moveTo(cx, cy);
-      p.lineTo(cx + r * Math.cos(a0), cy + r * Math.sin(a0));
-      p.arc(cx, cy, r, a0, a1);
-      p.closePath();
-    },
-    circle: (cx, cy, r) => { p.moveTo(cx + r, cy); p.arc(cx, cy, r, 0, TAU); p.closePath(); }
-  };
-}
-function SvgPen(){
-  const d = [];
-  const n = v => Math.round(v * 1e4) / 1e4;
-  return {
-    get d(){ return d.join(' '); },
-    rect: (x, y, w, h) => d.push(`M${n(x)} ${n(y)}H${n(x + w)}V${n(y + h)}H${n(x)}Z`),
-    rectR: (x, y, w, h) => d.push(`M${n(x)} ${n(y)}V${n(y + h)}H${n(x + w)}V${n(y)}Z`),
-    poly: pts => d.push('M' + pts.map(([x, y]) => `${n(x)} ${n(y)}`).join('L') + 'Z'),
-    pie: (cx, cy, r, a0, a1) => {
-      const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0);
-      const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
-      const large = Math.abs(a1 - a0) > Math.PI ? 1 : 0;
-      d.push(`M${n(cx)} ${n(cy)}L${n(x0)} ${n(y0)}A${n(r)} ${n(r)} 0 ${large} 1 ${n(x1)} ${n(y1)}Z`);
-    },
-    circle: (cx, cy, r) => d.push(
-      `M${n(cx + r)} ${n(cy)}A${n(r)} ${n(r)} 0 1 1 ${n(cx - r)} ${n(cy)}A${n(r)} ${n(r)} 0 1 1 ${n(cx + r)} ${n(cy)}Z`
-    )
-  };
-}
-
-/* ---------- vocabulário de blocos (espaço unitário 0..1) ---------- */
-const SHAPES = {
-  full:    p => p.rect(0, 0, 1, 1),
-  half:    p => p.rect(0, .5, 1, .5),
-  third:   p => p.rect(0, .667, 1, .333),
-  sixth:   p => p.rect(0, .833, 1, .167),
-  quarter: p => p.rect(0, .5, .5, .5),
-  diag:    p => { p.rect(0, 0, .5, .5); p.rect(.5, .5, .5, .5); },
-  bars:    p => { p.rect(0, .08, 1, .2); p.rect(0, .4, 1, .2); p.rect(0, .72, 1, .2); },
-  steps:   p => { p.rect(0, .08, .46, .2); p.rect(0, .4, .73, .2); p.rect(0, .72, 1, .2); },
-  tray:    p => { p.rect(0, .36, .19, .64); p.rect(.81, .36, .19, .64); p.rect(0, .81, 1, .19); },
-  notch:   p => p.poly([[0, 0], [1, 0], [1, 1], [.66, 1], [.66, .74], [.34, .74], [.34, 1], [0, 1]]),
-  frame:   p => { p.rect(0, 0, 1, 1); p.rectR(.26, .26, .48, .48); },
-  pie:     p => p.pie(0, 1, 1, -Math.PI / 2, 0),
-  pieSm:   p => p.pie(0, 1, .55, -Math.PI / 2, 0),
-  arch:    p => { p.rect(0, .5, 1, .5); p.pie(.5, .5, .5, Math.PI, TAU); },
-  dot:     p => p.circle(.5, .5, .34),
-  cross:   p => { p.rect(.36, 0, .28, 1); p.rect(0, .36, 1, .28); },
-  tee:     p => { p.rect(0, 0, 1, .28); p.rect(.36, 0, .28, 1); },
-  ell:     p => { p.rect(0, 0, .3, 1); p.rect(0, .7, 1, .3); }
-};
-const PATHS = Object.fromEntries(Object.entries(SHAPES).map(([k, fn]) => {
-  const pen = CanvasPen(); fn(pen); return [k, pen.path];
-}));
-const svgPathFor = shape => { const pen = SvgPen(); SHAPES[shape](pen); return pen.d; };
-
-/* núcleo estrutural (sempre presente) + repertório expressivo */
-const CORE = ['full', 'half', 'half', 'third', 'quarter', 'quarter', 'sixth', 'bars', 'steps', 'ell'];
-const EXTRA = ['tray', 'notch', 'notch', 'frame', 'pie', 'pie', 'pieSm', 'arch', 'arch', 'dot', 'cross', 'tee', 'diag', 'diag'];
-
-/* ---------- paletas ---------- */
+/* ---------- paletas: bg = fundo, ink = acento, text = tipografia ---------- */
 const PALETTES = {
-  stack:     { name: 'Stack',     bg: '#f2f2f0', ink: ['#f48024', '#f48024', '#0c0d0e', '#0c0d0e', '#c9ccce'] },
-  invert:    { name: 'Inverse',   bg: '#0c0d0e', ink: ['#f48024', '#f48024', '#ffffff', '#3b4145', '#ffc180'] },
-  mono:      { name: 'Mono',      bg: '#ffffff', ink: ['#0c0d0e', '#0c0d0e', '#0c0d0e', '#9aa0a3'] },
-  ember:     { name: 'Ember',     bg: '#1b0f04', ink: ['#f48024', '#ff6a00', '#ffb066', '#7a3c07', '#fff1e0'] },
-  blueprint: { name: 'Blueprint', bg: '#0a2540', ink: ['#0a95ff', '#7fd0ff', '#ffffff', '#134a78'] },
-  paper:     { name: 'Paper',     bg: '#e6e2d6', ink: ['#1f1c17', '#c8492b', '#4f6b52', '#a89b7d'] }
+  bloom:     { name:'Bloom',     bg:'#3d3d3d', ink:'#e879f9', text:'#2b2b2b',
+               bands:['#e879f9','#3d3d3d','#f9a8f5','#4a4a4a','#c98cff','#333333'] },
+  stack:     { name:'Stack',     bg:'#f2f2f0', ink:'#f48024', text:'#0c0d0e',
+               bands:['#f48024','#f2f2f0','#0c0d0e','#c9ccce','#ffb066','#e6e3db'] },
+  ink:       { name:'Ink',       bg:'#0c0d0e', ink:'#f2f2f0', text:'#0c0d0e',
+               bands:['#f2f2f0','#0c0d0e','#9aa0a3','#1c1d1e','#d8d8d3','#2b2c2d'] },
+  ember:     { name:'Ember',     bg:'#1b0f04', ink:'#ffc300', text:'#1b0f04',
+               bands:['#ffc300','#1b0f04','#ff5a1f','#3a1c06','#ffb066','#2a1405'] },
+  blueprint: { name:'Blueprint', bg:'#0a2540', ink:'#7de2ff', text:'#08243d',
+               bands:['#7de2ff','#0a2540','#4361ff','#134a78','#c3b9ff','#0e3358'] },
+  paper:     { name:'Paper',     bg:'#e6e2d6', ink:'#c8492b', text:'#1f1c17',
+               bands:['#c8492b','#e6e2d6','#1f1c17','#a89b7d','#4f6b52','#d8d2c2'] }
 };
 
-/* ---------- formatos de saída ---------- */
+/* ---------- formatos ---------- */
 const FORMATS = {
-  square: { a: 1,      w: 1600 },
   wide:   { a: 16 / 9, w: 1920 },
+  square: { a: 1,      w: 1600 },
   tall:   { a: 9 / 16, w: 1080 },
   post:   { a: 4 / 5,  w: 1440 },
   banner: { a: 3,      w: 2400 }
 };
 
 /* ---------- estado ---------- */
-const state = {
-  cols: 11, density: 78, gap: 8, variety: 32,
-  format: 'square', mode: 'rebuild', speed: 14, churn: 14, transition: 'slide',
-  palette: 'stack', seed: newSeed(), frozen: false
+const S = {
+  count: 6, radius: 118, decay: 96, step: 12, start: 58, angle: 0, origin: 50,
+  format: 'wide', mode: 'slide', amount: 45, speed: 20,
+  palette: 'bloom', multi: false,
+  label: '50K', text: 'Thank you|for following', textSize: 6, showText: true,
+  seed: newSeed(), frozen: false, phase: 0
 };
 
-let rng = mulberry32(0);
-let grid = [], cols = 0, rows = 0;
-const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
-const DUR = 420; // ms por transição de bloco
+const pal = () => PALETTES[S.palette];
 
-const pal = () => PALETTES[state.palette];
-
-function randSpec(){
-  const ink = pal().ink;
-  if (rng() * 100 > state.density) return { shape: 'empty', rot: 0, color: ink[0] };
-  const pool = rng() * 100 < state.variety ? EXTRA : CORE;
-  return {
-    shape: pool[Math.floor(rng() * pool.length)],
-    rot: Math.floor(rng() * 4),
-    color: ink[Math.floor(rng() * ink.length)]
-  };
+/* jitter por semente: quebra a regularidade da fila sem sair do sistema */
+function jitters(){
+  const rng = mulberry32(hashStr(S.seed));
+  return Array.from({ length: 32 }, () => ({ r: .9 + rng() * .2, o: (rng() - .5) * .7 }));
 }
+let JIT = jitters();
 
-function buildGrid(){
-  cols = state.cols;
-  rows = clamp(Math.round(state.cols / FORMATS[state.format].a), 1, 240);
-  rng = mulberry32(hashStr(state.seed + '|' + cols + 'x' + rows + '|' + state.palette));
-  grid = new Array(cols * rows);
-  for (let i = 0; i < grid.length; i++) grid[i] = { cur: randSpec(), prev: null, t: 1, wait: 0, dir: 0 };
-  syncMeta();
-}
+/* ---------- geometria: a fila de arcos ---------- *
+ * Coordenadas no referencial girado, origem no centro do quadro.
+ * `cx - r` é onde o arco corta a linha do meio: é por esse corte que a
+ * composição é parametrizada, porque é o que se vê.                    */
+function arcList(W, H){
+  const base = Math.min(W, H);
+  const J = JIT, amt = S.amount / 100, p = S.phase;
 
-function retarget(i, spec, wait){
-  const cell = grid[i];
-  if (!cell) return;
-  cell.prev = cell.cur;
-  cell.cur = spec || randSpec();
-  cell.dir = Math.floor(rng() * 4);
-  cell.t = 0;
-  cell.wait = wait || 0;
-}
+  const pulse     = S.mode === 'pulse'     ? 1 + .22 * amt * Math.sin(p) : 1;
+  const accordion = S.mode === 'accordion' ? 1 + .8  * amt * Math.sin(p) : 1;
+  const slide     = S.mode === 'slide'     ? .35 * amt * Math.sin(p) * base : 0;
 
-/* ---------- passos de reconstrução ---------- */
-function rebuildStep(){
-  const total = cols * rows;
-  switch (state.mode){
-    case 'rebuild': {
-      const amount = Math.max(1, Math.round(total * state.churn / 100));
-      for (let k = 0; k < amount; k++) retarget(Math.floor(rng() * total), null, rng() * 220);
-      break;
-    }
-    case 'cascade': {
-      const span = cols + rows;
-      for (let y = 0; y < rows; y++)
-        for (let x = 0; x < cols; x++)
-          retarget(y * cols + x, null, (x + y) / span * 620);
-      break;
-    }
-    case 'columns': {
-      const n = Math.max(1, Math.round(cols * state.churn / 100));
-      for (let k = 0; k < n; k++){
-        const x = Math.floor(rng() * cols);
-        for (let y = 0; y < rows; y++) retarget(y * cols + x, null, y / rows * 380);
-      }
-      break;
-    }
-    case 'rows': {
-      const n = Math.max(1, Math.round(rows * state.churn / 100));
-      for (let k = 0; k < n; k++){
-        const y = Math.floor(rng() * rows);
-        for (let x = 0; x < cols; x++) retarget(y * cols + x, null, x / cols * 380);
-      }
-      break;
-    }
-    case 'shuffle': {
-      const pairs = Math.max(1, Math.round(total * state.churn / 200));
-      for (let k = 0; k < pairs; k++){
-        const a = Math.floor(rng() * total), b = Math.floor(rng() * total);
-        const sa = grid[a].cur, sb = grid[b].cur;
-        retarget(a, sb, rng() * 160);
-        retarget(b, sa, rng() * 160);
-      }
-      break;
-    }
+  const r0 = S.radius / 100 * base * pulse;
+  const decay = S.decay / 100;
+  const step = S.step / 100 * base * accordion;
+  const cross0 = (S.start / 100 - .5) * W + slide;
+  const cy = (S.origin / 100 - .5) * H * 1.4;
+
+  const list = [];
+  for (let k = 0; k < S.count; k++){
+    const j = J[k % J.length];
+    const r = Math.max(2, r0 * Math.pow(decay, k) * j.r);
+    list.push({
+      cx: cross0 + k * step + j.o * step - r,   // centro recua r: o corte é cx + r
+      cy, r,
+      fill: S.multi ? pal().bands[k % pal().bands.length] : (k % 2 ? pal().bg : pal().ink)
+    });
   }
+  return list.reverse();   // pinta do último para o primeiro
 }
 
 /* ---------- desenho ---------- */
-function drawSpec(ctx, spec, x, y, cw, ch, ox, oy, k){
-  if (spec.shape === 'empty') return;
-  const gapK = 1 - state.gap / 100;
+function drawText(ctx, W, H){
+  if (!S.showText || (!S.label && !S.text)) return;
+  const base = Math.min(W, H);
+  const s = S.textSize / 100 * base;
+  const m = base * .055;
   ctx.save();
-  ctx.translate(x + ox + cw / 2, y + oy + ch / 2);
-  ctx.rotate(spec.rot * Math.PI / 2);
-  ctx.scale(cw * gapK * k, ch * gapK * k);
-  ctx.translate(-.5, -.5);
-  ctx.fillStyle = spec.color;
-  ctx.fill(PATHS[spec.shape]);
+  ctx.fillStyle = pal().text;
+  ctx.textBaseline = 'top';
+  ctx.font = '500 ' + s + 'px ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  const lines = String(S.text).split('|');
+  const gutter = S.label ? ctx.measureText(S.label).width + s * 1.1 : 0;
+  if (S.label) ctx.fillText(S.label, m, m);
+  lines.forEach((ln, i) => ctx.fillText(ln, m + gutter, m + i * s * 1.18));
   ctx.restore();
 }
 
-function drawScene(ctx, W, H, snap){
+function drawScene(ctx, W, H){
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = pal().bg;
   ctx.fillRect(0, 0, W, H);
-  const cw = W / cols, ch = H / rows;
-  for (let y = 0; y < rows; y++){
-    for (let x = 0; x < cols; x++){
-      const cell = grid[y * cols + x];
-      const px = x * cw, py = y * ch;
-      if (snap || cell.t >= 1 || !cell.prev){ drawSpec(ctx, cell.cur, px, py, cw, ch, 0, 0, 1); continue; }
-      const p = easeInOut(cell.t);
-      if (state.transition === 'slide'){
-        const [dx, dy] = DIRS[cell.dir];
-        ctx.save();
-        ctx.beginPath(); ctx.rect(px, py, cw, ch); ctx.clip();
-        drawSpec(ctx, cell.prev, px, py, cw, ch, dx * p * cw, dy * p * ch, 1);
-        drawSpec(ctx, cell.cur, px, py, cw, ch, -dx * (1 - p) * cw, -dy * (1 - p) * ch, 1);
-        ctx.restore();
-      } else if (state.transition === 'pop'){
-        if (p < .5) drawSpec(ctx, cell.prev, px, py, cw, ch, 0, 0, 1 - p * 2);
-        else drawSpec(ctx, cell.cur, px, py, cw, ch, 0, 0, (p - .5) * 2);
-      } else {
-        drawSpec(ctx, p < .5 ? cell.prev : cell.cur, px, py, cw, ch, 0, 0, 1);
-      }
-    }
+  const M = Math.hypot(W, H) * 2;
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.rotate(S.angle * DEG);
+  for (const a of arcList(W, H)){
+    ctx.beginPath();
+    ctx.moveTo(a.cx, a.cy - a.r);
+    ctx.arc(a.cx, a.cy, a.r, -Math.PI / 2, Math.PI / 2);  // o bojo, virado para frente
+    ctx.lineTo(a.cx, M);                                  // e todo o meio-plano de trás
+    ctx.lineTo(-M, M);
+    ctx.lineTo(-M, -M);
+    ctx.lineTo(a.cx, -M);
+    ctx.closePath();
+    ctx.fillStyle = a.fill;
+    ctx.fill();
   }
+  ctx.restore();
+  drawText(ctx, W, H);
 }
 
 /* ---------- loop ---------- */
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-let acc = 0, last = 0;
+let last = 0;
 
 function resize(){
-  const A = FORMATS[state.format].a;
+  const A = FORMATS[S.format].a;
   const main = document.querySelector('main');
   const availW = Math.max(240, (main.clientWidth || 800) - 64);
   const availH = Math.max(220, window.innerHeight - (window.innerWidth > 820 ? 130 : 220));
@@ -446,133 +363,137 @@ function resize(){
 function frame(now){
   const dt = last ? Math.min(now - last, 120) : 16;
   last = now;
-  if (!state.frozen && state.mode !== 'off'){
-    const rate = state.speed / 20;              // reconstruções por segundo
-    acc += dt;
-    const iv = 1000 / rate;
-    if (acc >= iv){ acc %= iv; rebuildStep(); }
+  if (!S.frozen && S.mode !== 'off'){
+    S.phase += dt / 1000 * (S.speed / 100) * 1.6;
+    if (S.mode === 'spin') S.angle = ((S.angle + dt / 1000 * (S.speed / 100) * 24 + 180) % 360) - 180;
   }
-  for (const cell of grid){
-    if (cell.t >= 1) continue;
-    if (cell.wait > 0){ cell.wait -= dt; continue; }
-    cell.t = Math.min(1, cell.t + dt / DUR);
-    if (cell.t >= 1) cell.prev = null;
-  }
-  drawScene(ctx, canvas.width, canvas.height, false);
+  drawScene(ctx, canvas.width, canvas.height);
   requestAnimationFrame(frame);
 }
 
 /* ---------- exportação ---------- */
-function download(url, name){
+function download(url, name, revoke){
   const a = document.createElement('a');
   a.href = url; a.download = name; a.click();
+  if (revoke) setTimeout(() => URL.revokeObjectURL(url), 6000);
+}
+function expDims(scale){
+  const f = FORMATS[S.format];
+  const W = Math.round(f.w * scale);
+  return { W, H: Math.round(W / f.a) };
 }
 function exportPNG(scale){
-  const f = FORMATS[state.format];
-  const W = Math.round(f.w * scale), H = Math.round(W / f.a);
+  const { W, H } = expDims(scale);
   const off = document.createElement('canvas');
   off.width = W; off.height = H;
-  drawScene(off.getContext('2d'), W, H, true);
-  download(off.toDataURL('image/png'), `stack-${state.seed}-${state.format}@${scale}x.png`);
+  drawScene(off.getContext('2d'), W, H);
+  download(off.toDataURL('image/png'), 'arcs-' + S.seed + '-' + S.format + '@' + scale + 'x.png');
 }
 function exportSVG(){
-  const f = FORMATS[state.format];
-  const W = f.w, H = Math.round(W / f.a);
-  const cw = W / cols, ch = H / rows, gapK = 1 - state.gap / 100;
+  const { W, H } = expDims(1);
   const n = v => Math.round(v * 100) / 100;
+  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const M = Math.round(Math.hypot(W, H) * 2);
   const out = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`,
-    `<rect width="${W}" height="${H}" fill="${pal().bg}"/>`
+    '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">',
+    '<rect width="' + W + '" height="' + H + '" fill="' + pal().bg + '"/>',
+    '<g transform="translate(' + n(W / 2) + ' ' + n(H / 2) + ') rotate(' + S.angle + ')">'
   ];
-  for (let y = 0; y < rows; y++){
-    for (let x = 0; x < cols; x++){
-      const s = grid[y * cols + x].cur;
-      if (s.shape === 'empty') continue;
-      const t = `translate(${n(x * cw + cw / 2)} ${n(y * ch + ch / 2)}) rotate(${s.rot * 90}) `
-              + `scale(${n(cw * gapK)} ${n(ch * gapK)}) translate(-0.5 -0.5)`;
-      out.push(`<path transform="${t}" d="${svgPathFor(s.shape)}" fill="${s.color}"/>`);
-    }
+  // mesma primitiva e mesma ordem de pintura do canvas
+  for (const a of arcList(W, H)){
+    const x = n(a.cx), y0 = n(a.cy - a.r), y1 = n(a.cy + a.r), r = n(a.r);
+    out.push('<path d="M' + x + ' ' + y0 + 'A' + r + ' ' + r + ' 0 0 1 ' + x + ' ' + y1 +
+             'L' + x + ' ' + M + 'L' + (-M) + ' ' + M + 'L' + (-M) + ' ' + (-M) + 'L' + x + ' ' + (-M) +
+             'Z" fill="' + a.fill + '"/>');
+  }
+  out.push('</g>');
+  if (S.showText && (S.label || S.text)){
+    const base = Math.min(W, H), s = S.textSize / 100 * base, m = base * .055;
+    const fam = 'ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif';
+    const gutter = S.label ? s * (String(S.label).length * .62 + 1.1) : 0;
+    out.push('<g fill="' + pal().text + '" font-family="' + fam + '" font-size="' + n(s) + '" font-weight="500">');
+    if (S.label) out.push('<text x="' + n(m) + '" y="' + n(m + s * .82) + '">' + esc(S.label) + '</text>');
+    String(S.text).split('|').forEach((ln, i) =>
+      out.push('<text x="' + n(m + gutter) + '" y="' + n(m + s * .82 + i * s * 1.18) + '">' + esc(ln) + '</text>'));
+    out.push('</g>');
   }
   out.push('</svg>');
   const url = URL.createObjectURL(new Blob([out.join('\n')], { type: 'image/svg+xml' }));
-  download(url, `stack-${state.seed}-${state.format}.svg`);
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  download(url, 'arcs-' + S.seed + '-' + S.format + '.svg', true);
 }
 
 /* ---------- UI ---------- */
 const $ = id => document.getElementById(id);
-const NUM = ['cols', 'density', 'gap', 'variety', 'speed', 'churn'];
-const SEL = ['format', 'mode', 'transition'];
+const NUM = ['count', 'radius', 'decay', 'step', 'start', 'angle', 'origin', 'amount', 'speed', 'textSize'];
+const SUFFIX = { radius:'%', decay:'%', step:'%', start:'%', angle:'°', origin:'%', amount:'%', textSize:'%' };
+const TXT = ['label', 'text'];
 
 function syncMeta(){
-  $('mSeed').textContent = state.seed;
-  $('mGrid').textContent = cols + '×' + rows;
-  $('mCells').textContent = grid.filter(c => c.cur.shape !== 'empty').length;
-  $('colsOut').textContent = state.cols;
-  $('densityOut').textContent = state.density + '%';
-  $('gapOut').textContent = state.gap + '%';
-  $('varietyOut').textContent = state.variety + '%';
-  $('speedOut').textContent = (state.speed / 20).toFixed(2) + '/s';
-  $('churnOut').textContent = state.churn + '%';
+  $('mSeed').textContent = S.seed;
+  $('mArcs').textContent = S.count;
+  $('mR').textContent = S.radius + '%';
+  NUM.forEach(k => $(k + 'Out').textContent =
+    k === 'speed' ? (S.speed / 100).toFixed(2) : S[k] + (SUFFIX[k] || ''));
 }
-
 function syncInputs(){
-  NUM.forEach(k => $(k).value = state[k]);
-  SEL.forEach(k => $(k).value = state[k]);
-  $('seed').value = state.seed;
-  $('freeze').textContent = state.frozen ? 'Retomar' : 'Congelar';
+  NUM.forEach(k => $(k).value = S[k]);
+  TXT.forEach(k => $(k).value = S[k]);
+  $('format').value = S.format;
+  $('mode').value = S.mode;
+  $('seed').value = S.seed;
+  $('freeze').textContent = S.frozen ? 'Retomar' : 'Congelar';
+  $('bTwo').setAttribute('aria-pressed', String(!S.multi));
+  $('bMulti').setAttribute('aria-pressed', String(S.multi));
+  $('bText').setAttribute('aria-pressed', String(S.showText));
   document.querySelectorAll('.sw').forEach(b =>
-    b.setAttribute('aria-pressed', String(b.dataset.pal === state.palette)));
+    b.setAttribute('aria-pressed', String(b.dataset.pal === S.palette)));
   syncMeta();
 }
 
-const HASH_KEYS = ['cols', 'density', 'gap', 'variety', 'format', 'mode', 'speed', 'churn', 'transition', 'palette', 'seed'];
+const HASH_KEYS = ['count','radius','decay','step','start','angle','origin','format','mode','amount','speed',
+                   'palette','multi','label','text','textSize','showText','seed'];
 function writeHash(){
   const o = {};
-  HASH_KEYS.forEach(k => o[k] = state[k]);
-  history.replaceState(null, '', '#' + btoa(JSON.stringify(o)).replace(/=+$/, ''));
+  HASH_KEYS.forEach(k => o[k] = S[k]);
+  history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/, ''));
 }
 function readHash(){
   if (location.hash.length < 2) return;
   try {
-    const o = JSON.parse(atob(location.hash.slice(1)));
-    HASH_KEYS.forEach(k => { if (k in o) state[k] = o[k]; });
+    const o = JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1)))));
+    HASH_KEYS.forEach(k => { if (k in o) S[k] = o[k]; });
   } catch (e){ /* hash inválido: ignora */ }
 }
 
 $('palettes').innerHTML = Object.entries(PALETTES).map(([k, p]) =>
-  `<button class="sw" data-pal="${k}" aria-pressed="false">
-     <span class="chips">${[p.bg, ...p.ink.slice(0, 3)].map(c => `<i style="background:${c}"></i>`).join('')}</span>
-     <em>${p.name}</em>
-   </button>`).join('');
-
-document.querySelectorAll('.sw').forEach(btn => btn.addEventListener('click', () => {
-  state.palette = btn.dataset.pal;
-  buildGrid(); syncInputs(); writeHash();
+  '<button class="sw" data-pal="' + k + '" aria-pressed="false">' +
+    '<span class="chips">' + [p.ink, p.bg, p.bands[2], p.bands[4]].map(c => '<i style="background:' + c + '"></i>').join('') + '</span>' +
+    '<em>' + p.name + '</em>' +
+  '</button>').join('');
+document.querySelectorAll('.sw').forEach(b => b.addEventListener('click', () => {
+  S.palette = b.dataset.pal; syncInputs(); writeHash();
 }));
 
-NUM.forEach(k => $(k).addEventListener('input', e => {
-  state[k] = +e.target.value;
-  if (k === 'cols' || k === 'density' || k === 'variety') buildGrid();
-  syncMeta(); writeHash();
-}));
-SEL.forEach(k => $(k).addEventListener('change', e => {
-  state[k] = e.target.value;
-  if (k === 'format'){ buildGrid(); resize(); }
-  writeHash();
-}));
+NUM.forEach(k => $(k).addEventListener('input', e => { S[k] = +e.target.value; syncMeta(); writeHash(); }));
+TXT.forEach(k => $(k).addEventListener('input', e => { S[k] = e.target.value; writeHash(); }));
+$('format').addEventListener('change', e => { S.format = e.target.value; resize(); writeHash(); });
+$('mode').addEventListener('change', e => { S.mode = e.target.value; writeHash(); });
 
 function regenerate(){
-  state.seed = newSeed();
-  buildGrid(); syncInputs(); writeHash();
+  S.seed = newSeed();
+  JIT = jitters();
+  syncInputs(); writeHash();
 }
 $('seed').addEventListener('change', e => {
-  state.seed = e.target.value.trim().toUpperCase() || newSeed();
-  buildGrid(); syncInputs(); writeHash();
+  S.seed = e.target.value.trim().toUpperCase() || newSeed();
+  JIT = jitters(); syncInputs(); writeHash();
 });
 $('dice').addEventListener('click', regenerate);
 $('regen').addEventListener('click', regenerate);
-$('freeze').addEventListener('click', () => { state.frozen = !state.frozen; syncInputs(); });
+$('freeze').addEventListener('click', () => { S.frozen = !S.frozen; syncInputs(); });
+$('bTwo').addEventListener('click', () => { S.multi = false; syncInputs(); writeHash(); });
+$('bMulti').addEventListener('click', () => { S.multi = true; syncInputs(); writeHash(); });
+$('bText').addEventListener('click', () => { S.showText = !S.showText; syncInputs(); writeHash(); });
 $('png1').addEventListener('click', () => exportPNG(1));
 $('png2').addEventListener('click', () => exportPNG(2));
 $('svg').addEventListener('click', exportSVG);
@@ -584,32 +505,25 @@ $('link').addEventListener('click', async e => {
   setTimeout(() => btn.textContent = 'Copiar link', 1400);
 });
 
-// clique reconstrói a região sob o cursor
+// clique põe o primeiro corte onde o cursor está
 canvas.addEventListener('pointerdown', e => {
   const r = canvas.getBoundingClientRect();
-  const cx = Math.floor((e.clientX - r.left) / r.width * cols);
-  const cy = Math.floor((e.clientY - r.top) / r.height * rows);
-  for (let dy = -1; dy <= 1; dy++){
-    for (let dx = -1; dx <= 1; dx++){
-      const x = cx + dx, y = cy + dy;
-      if (x < 0 || y < 0 || x >= cols || y >= rows) continue;
-      retarget(y * cols + x, null, (Math.abs(dx) + Math.abs(dy)) * 70);
-    }
-  }
-  syncMeta();
+  const x = (e.clientX - r.left) / r.width;
+  S.start = Math.round(clamp(x * 100, -40, 130));
+  syncInputs(); writeHash();
 });
 
 document.addEventListener('keydown', e => {
   if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
   if (e.code === 'Space'){ e.preventDefault(); regenerate(); }
-  if (e.key.toLowerCase() === 'f'){ state.frozen = !state.frozen; syncInputs(); }
+  if (e.key.toLowerCase() === 'f'){ S.frozen = !S.frozen; syncInputs(); }
   if (e.key.toLowerCase() === 'e') exportPNG(2);
 });
 
 window.addEventListener('resize', resize);
 
 readHash();
-buildGrid();
+JIT = jitters();
 syncInputs();
 resize();
 requestAnimationFrame(frame);
