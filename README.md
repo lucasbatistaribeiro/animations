@@ -65,7 +65,13 @@ A fronteira é um **corte reto**. Cada célula tem um peso e uma proporção de 
 | **Direção** | esquerda, direita, cima ou baixo — orienta as barras e define para onde a fila caminha |
 | **Variação** | irregularidade dos pesos das células, a partir da semente |
 
-A animação padrão é **Andar**: a fila atravessa a tela em loop. O padrão é periódico — as células se repetem a cada `Barras` —, então rolar exatamente um período devolve a mesma imagem e a marcha nunca acumula deriva. Com `Progressão` em 100% não existe degrau entre um período e o seguinte e a fila anda sem costura alguma; abaixo disso, o degrau da rampa passa pela tela como a zona de silêncio de um código de barras.
+A animação padrão é **Caindo**: a barra de apoio não sai do lugar e as outras se soltam dela, afinando conforme se afastam.
+
+A diferença em relação a *Andar* é de onde vem a largura. Na marcha, a largura viaja junto com a barra — o padrão inteiro translada. Em *Caindo*, a largura é função da **distância até o apoio**: a barra afina enquanto desce, em vez de carregar a própria espessura. Nos dois casos o loop fecha porque, ao fim de um período, cada barra assume exatamente o lugar (e a espessura) da anterior.
+
+Na marcha, com `Progressão` em 100% não existe degrau entre um período e o seguinte e a fila anda sem costura alguma; abaixo disso o degrau da rampa atravessa a tela, como a zona de silêncio de um código de barras.
+
+`Direção` orienta a fila e diz de qual borda o apoio segura: em `baixo`, ele fica no topo e as barras caem.
 
 ### Comum aos dois
 
@@ -73,7 +79,7 @@ A animação padrão é **Andar**: a fila atravessa a tela em loop. O padrão é
 |---|---|
 | **Ângulo** | só no Arc Bands: direção contínua da fila, de -180° a 180°. No Barcode ela é discreta, pelos quatro botões de direção |
 | **Formato** | 16:9, 1:1, 9:16, 4:5, 3:1 |
-| **Animação** | os modos disponíveis mudam com o layout. Arc Bands: `deslizar`, `sanfona`, `pulsar`, `girar`. Barcode: `andar`, `pulsar`, `sanfona` |
+| **Animação** | os modos disponíveis mudam com o layout. Arc Bands: `deslizar`, `sanfona`, `pulsar`, `girar`. Barcode: `caindo`, `andar`, `pulsar`, `sanfona` |
 | **Cores** | 7 paletas, em duas cores (acento e fundo) ou usando a paleta inteira, uma cor por faixa |
 | **Semente** | irregulariza a fila sem sair do sistema |
 

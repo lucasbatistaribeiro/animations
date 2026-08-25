@@ -283,7 +283,7 @@ const LAYOUTS = {
     labels: { count:'Barras', radius:'Tinta', decay:'Progressão', origin:'Variação' },
     ranges: { count:[3,48], radius:[5,95], decay:[40,140], origin:[0,100] },
     uses: ['count','radius','decay','origin','dir'],
-    modes: ['march','pulse','accordion','off']
+    modes: ['fall','march','pulse','accordion','off']
   }
 };
 
@@ -293,6 +293,7 @@ const DIRS = { right: 0, down: 90, left: 180, up: 270 };
 const DIR_LABELS = { left: '←  esquerda', right: '→  direita', up: '↑  cima', down: '↓  baixo' };
 
 const MODE_LABELS = {
+  fall:      'Caindo — as barras se soltam do apoio',
   march:     'Andar — a fila atravessa a tela',
   slide:     'Deslizar — a fila vai e volta',
   accordion: 'Sanfona — os pesos abrem e fecham',
@@ -361,9 +362,38 @@ function arcList(W, H){
 function barList(W, H){
   const n = S.count, J = JIT;
   const amt = S.amount / 100, p = S.phase;
-  const duty0 = S.radius / 100;
+  const duty0 = clamp(S.radius / 100, .02, .98);
   const fall = S.decay / 100;
   const vary = S.origin / 100;
+  // As direções do Barcode são axiais, então o vão da fila é exatamente a
+  // dimensão do quadro naquela direção — não a diagonal. É o que garante que
+  // a barra de apoio caia dentro do quadro e que `Barras` signifique de fato
+  // o número de barras atravessando a tela.
+  const L = (S.dir === 'up' || S.dir === 'down') ? H : W;
+  const cor = i => S.multi ? pal().bands[(i % n) % pal().bands.length] : pal().ink;
+
+  if (S.mode === 'fall'){
+    // A barra de apoio nao sai do lugar; as outras se soltam dela e afinam.
+    // A diferenca em relacao a marcha e de onde vem a largura: aqui ela e
+    // funcao da DISTANCIA ate o apoio, nao da barra. Entao a barra afina
+    // enquanto se afasta, e nao carrega a propria espessura.
+    // Em frac = 1 cada barra assume o lugar (e a espessura) da anterior:
+    // a imagem se repete e o loop fecha.
+    const frac = (p / TAU) % 1;
+    const base = L / n;                               // passo constante: queda uniforme
+    const jit = u => {                                // jitter interpolado: continuo
+      const i = Math.floor(u), t = u - i;
+      const a = J[i % n].r - 1, b = J[(i + 1) % n].r - 1;
+      return 1 + (a * (1 - t) + b * t) * vary * 1.6;
+    };
+    const bar = u => {
+      const duty = clamp(duty0 * Math.pow(fall, u) * jit(u), .01, .99);
+      return { x: -L / 2 + base * u, w: base * duty, fill: cor(Math.round(u)) };
+    };
+    const out = [bar(0)];                             // o apoio
+    for (let i = 0; i < n; i++) out.push(bar(i + frac));
+    return out;
+  }
 
   const pulse = S.mode === 'pulse'     ? 1 + .5 * amt * Math.sin(p) : 1;
   const acc   = S.mode === 'accordion' ? amt : 0;
@@ -382,7 +412,6 @@ function barList(W, H){
     period += w;
   }
 
-  const L = Math.hypot(W, H);          // cobre o quadro em qualquer direção
   const scale = L / period;            // um período preenche a diagonal
   const periodPx = period * scale;
   const march = S.mode === 'march' ? (p / TAU * periodPx) % periodPx : 0;
@@ -393,10 +422,7 @@ function barList(W, H){
   while (x < L / 2){
     const c = cells[k % n];
     const w = c.w * scale;
-    if (x + w > -L / 2) out.push({
-      x, w: w * c.duty,
-      fill: S.multi ? pal().bands[(k % n) % pal().bands.length] : pal().ink
-    });
+    if (x + w > -L / 2) out.push({ x, w: w * c.duty, fill: cor(k) });
     x += w;
     k++;
   }
@@ -550,7 +576,9 @@ function syncLayout(){
   }
   if (!L.modes.includes(S.mode)) S.mode = L.modes[0];
   // Intensidade não faz nada na marcha
-  $('r_amount').classList.toggle('off', S.mode === 'march');
+  const semAmp = S.mode === 'march' || S.mode === 'fall';
+  $('r_amount').classList.toggle('off', semAmp);
+  $('amount').classList.toggle('off', semAmp);
   document.querySelectorAll('.lay').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.k === S.layout)));
 }
@@ -586,7 +614,7 @@ function readHash(){
 
 const PRESETS = {
   arcs: { count:6,  radius:118, decay:96, step:12, start:58, angle:0,  origin:50, palette:'bloom', mode:'slide',  amount:45 },
-  bars: { count:10, radius:95,  decay:68, step:12, start:58, angle:0,  dir:'left', origin:35, palette:'noir', mode:'march', amount:35 }
+  bars: { count:10, radius:95,  decay:68, step:12, start:58, angle:0,  dir:'down', origin:35, palette:'noir', mode:'fall', amount:35 }
 };
 function setLayout(k){
   S.layout = k;
