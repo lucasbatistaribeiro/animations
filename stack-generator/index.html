@@ -153,15 +153,6 @@
   </fieldset>
 
   <fieldset>
-    <span class="grouplabel">Texto</span>
-    <div class="field"><span>Rótulo</span><input type="text" id="label" spellcheck="false"></div>
-    <div class="field"><span>Título (use | para quebrar linha)</span><input type="text" id="text" spellcheck="false"></div>
-    <div class="row"><label for="textSize">Corpo</label><output id="textSizeOut"></output></div>
-    <input type="range" id="textSize" min="2" max="14" step="1">
-    <button id="bText" aria-pressed="true">Mostrar texto</button>
-  </fieldset>
-
-  <fieldset>
     <span class="grouplabel">Semente</span>
     <div class="seed">
       <input type="text" id="seed" spellcheck="false" autocomplete="off">
@@ -226,19 +217,19 @@ function hashStr(s){
 }
 const newSeed = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 
-/* ---------- paletas: bg = fundo, ink = acento, text = tipografia ---------- */
+/* ---------- paletas: bg = fundo, ink = acento ---------- */
 const PALETTES = {
-  bloom:     { name:'Bloom',     bg:'#3d3d3d', ink:'#e879f9', text:'#2b2b2b',
+  bloom:     { name:'Bloom',     bg:'#3d3d3d', ink:'#e879f9',
                bands:['#e879f9','#3d3d3d','#f9a8f5','#4a4a4a','#c98cff','#333333'] },
-  stack:     { name:'Stack',     bg:'#f2f2f0', ink:'#f48024', text:'#0c0d0e',
+  stack:     { name:'Stack',     bg:'#f2f2f0', ink:'#f48024',
                bands:['#f48024','#f2f2f0','#0c0d0e','#c9ccce','#ffb066','#e6e3db'] },
-  ink:       { name:'Ink',       bg:'#0c0d0e', ink:'#f2f2f0', text:'#0c0d0e',
+  ink:       { name:'Ink',       bg:'#0c0d0e', ink:'#f2f2f0',
                bands:['#f2f2f0','#0c0d0e','#9aa0a3','#1c1d1e','#d8d8d3','#2b2c2d'] },
-  ember:     { name:'Ember',     bg:'#1b0f04', ink:'#ffc300', text:'#1b0f04',
+  ember:     { name:'Ember',     bg:'#1b0f04', ink:'#ffc300',
                bands:['#ffc300','#1b0f04','#ff5a1f','#3a1c06','#ffb066','#2a1405'] },
-  blueprint: { name:'Blueprint', bg:'#0a2540', ink:'#7de2ff', text:'#08243d',
+  blueprint: { name:'Blueprint', bg:'#0a2540', ink:'#7de2ff',
                bands:['#7de2ff','#0a2540','#4361ff','#134a78','#c3b9ff','#0e3358'] },
-  paper:     { name:'Paper',     bg:'#e6e2d6', ink:'#c8492b', text:'#1f1c17',
+  paper:     { name:'Paper',     bg:'#e6e2d6', ink:'#c8492b',
                bands:['#c8492b','#e6e2d6','#1f1c17','#a89b7d','#4f6b52','#d8d2c2'] }
 };
 
@@ -256,7 +247,6 @@ const S = {
   count: 6, radius: 118, decay: 96, step: 12, start: 58, angle: 0, origin: 50,
   format: 'wide', mode: 'slide', amount: 45, speed: 20,
   palette: 'bloom', multi: false,
-  label: '50K', text: 'Thank you|for following', textSize: 6, showText: true,
   seed: newSeed(), frozen: false, phase: 0
 };
 
@@ -301,22 +291,6 @@ function arcList(W, H){
 }
 
 /* ---------- desenho ---------- */
-function drawText(ctx, W, H){
-  if (!S.showText || (!S.label && !S.text)) return;
-  const base = Math.min(W, H);
-  const s = S.textSize / 100 * base;
-  const m = base * .055;
-  ctx.save();
-  ctx.fillStyle = pal().text;
-  ctx.textBaseline = 'top';
-  ctx.font = '500 ' + s + 'px ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-  const lines = String(S.text).split('|');
-  const gutter = S.label ? ctx.measureText(S.label).width + s * 1.1 : 0;
-  if (S.label) ctx.fillText(S.label, m, m);
-  lines.forEach((ln, i) => ctx.fillText(ln, m + gutter, m + i * s * 1.18));
-  ctx.restore();
-}
-
 function drawScene(ctx, W, H){
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = pal().bg;
@@ -338,7 +312,6 @@ function drawScene(ctx, W, H){
     ctx.fill();
   }
   ctx.restore();
-  drawText(ctx, W, H);
 }
 
 /* ---------- loop ---------- */
@@ -392,7 +365,6 @@ function exportPNG(scale){
 function exportSVG(){
   const { W, H } = expDims(1);
   const n = v => Math.round(v * 100) / 100;
-  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const M = Math.round(Math.hypot(W, H) * 2);
   const out = [
     '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">',
@@ -407,16 +379,6 @@ function exportSVG(){
              'Z" fill="' + a.fill + '"/>');
   }
   out.push('</g>');
-  if (S.showText && (S.label || S.text)){
-    const base = Math.min(W, H), s = S.textSize / 100 * base, m = base * .055;
-    const fam = 'ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif';
-    const gutter = S.label ? s * (String(S.label).length * .62 + 1.1) : 0;
-    out.push('<g fill="' + pal().text + '" font-family="' + fam + '" font-size="' + n(s) + '" font-weight="500">');
-    if (S.label) out.push('<text x="' + n(m) + '" y="' + n(m + s * .82) + '">' + esc(S.label) + '</text>');
-    String(S.text).split('|').forEach((ln, i) =>
-      out.push('<text x="' + n(m + gutter) + '" y="' + n(m + s * .82 + i * s * 1.18) + '">' + esc(ln) + '</text>'));
-    out.push('</g>');
-  }
   out.push('</svg>');
   const url = URL.createObjectURL(new Blob([out.join('\n')], { type: 'image/svg+xml' }));
   download(url, 'arcs-' + S.seed + '-' + S.format + '.svg', true);
@@ -424,9 +386,8 @@ function exportSVG(){
 
 /* ---------- UI ---------- */
 const $ = id => document.getElementById(id);
-const NUM = ['count', 'radius', 'decay', 'step', 'start', 'angle', 'origin', 'amount', 'speed', 'textSize'];
-const SUFFIX = { radius:'%', decay:'%', step:'%', start:'%', angle:'°', origin:'%', amount:'%', textSize:'%' };
-const TXT = ['label', 'text'];
+const NUM = ['count', 'radius', 'decay', 'step', 'start', 'angle', 'origin', 'amount', 'speed'];
+const SUFFIX = { radius:'%', decay:'%', step:'%', start:'%', angle:'°', origin:'%', amount:'%' };
 
 function syncMeta(){
   $('mSeed').textContent = S.seed;
@@ -437,21 +398,19 @@ function syncMeta(){
 }
 function syncInputs(){
   NUM.forEach(k => $(k).value = S[k]);
-  TXT.forEach(k => $(k).value = S[k]);
   $('format').value = S.format;
   $('mode').value = S.mode;
   $('seed').value = S.seed;
   $('freeze').textContent = S.frozen ? 'Retomar' : 'Congelar';
   $('bTwo').setAttribute('aria-pressed', String(!S.multi));
   $('bMulti').setAttribute('aria-pressed', String(S.multi));
-  $('bText').setAttribute('aria-pressed', String(S.showText));
   document.querySelectorAll('.sw').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.pal === S.palette)));
   syncMeta();
 }
 
 const HASH_KEYS = ['count','radius','decay','step','start','angle','origin','format','mode','amount','speed',
-                   'palette','multi','label','text','textSize','showText','seed'];
+                   'palette','multi','seed'];
 function writeHash(){
   const o = {};
   HASH_KEYS.forEach(k => o[k] = S[k]);
@@ -475,7 +434,6 @@ document.querySelectorAll('.sw').forEach(b => b.addEventListener('click', () => 
 }));
 
 NUM.forEach(k => $(k).addEventListener('input', e => { S[k] = +e.target.value; syncMeta(); writeHash(); }));
-TXT.forEach(k => $(k).addEventListener('input', e => { S[k] = e.target.value; writeHash(); }));
 $('format').addEventListener('change', e => { S.format = e.target.value; resize(); writeHash(); });
 $('mode').addEventListener('change', e => { S.mode = e.target.value; writeHash(); });
 
@@ -493,7 +451,6 @@ $('regen').addEventListener('click', regenerate);
 $('freeze').addEventListener('click', () => { S.frozen = !S.frozen; syncInputs(); });
 $('bTwo').addEventListener('click', () => { S.multi = false; syncInputs(); writeHash(); });
 $('bMulti').addEventListener('click', () => { S.multi = true; syncInputs(); writeHash(); });
-$('bText').addEventListener('click', () => { S.showText = !S.showText; syncInputs(); writeHash(); });
 $('png1').addEventListener('click', () => exportPNG(1));
 $('png2').addEventListener('click', () => exportPNG(2));
 $('svg').addEventListener('click', exportSVG);
