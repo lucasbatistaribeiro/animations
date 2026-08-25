@@ -6,7 +6,7 @@ Dois geradores de assets: formas geométricas que se reformatam, reorganizam e r
 
 | | |
 |---|---|
-| [Bands 2D](https://lucasbatistaribeiro.github.io/animations/stack-generator/) | Faixas de cor chapada: arcos, código de barras ou compassos |
+| [Bands 2D](https://lucasbatistaribeiro.github.io/animations/stack-generator/) | Formas chapadas: variantes de uma elipse, código de barras ou compassos |
 | [Stacks 3D](https://lucasbatistaribeiro.github.io/animations/stack-generator/stacks-3d.html) | Blocos extrudados em projeção axonométrica, cinco layouts |
 
 Cada gerador é **um arquivo HTML autocontido**: sem dependências, sem build, sem servidor. Dá para abrir direto do disco — só o "Copiar link" e os downloads exigem `http(s)`, por causa das restrições de contexto seguro do navegador.
@@ -33,25 +33,22 @@ O Pages serve a branch `main` a partir da raiz.
 
 ## Bands 2D
 
-Três layouts sobre a mesma ideia: uma fila de fronteiras divide o quadro em faixas de cor chapada.
+Três layouts de formas chapadas, cada um construído a partir de uma única figura que se repete em variantes.
 
 ### Layout: Arc Bands
 
-A fronteira é um **arco**. Cada arco pinta todo o meio-plano atrás de si, e a fila é pintada do último para o primeiro, alternando acento e fundo. Cada arco cobre o anterior, e o que sobra entre dois vizinhos é uma faixa de altura cheia — reta de um lado, curva do outro.
+Existe uma **elipse principal**, e cada peça é ela mesma cortada por uma corda cada vez mais baixa: a primeira é a elipse inteira, as seguintes são calotas cada vez mais rasas. É a figura sendo quebrada em variantes de si.
 
-Duas consequências úteis:
-
-- as faixas **não afinam** até virar ponta, como aconteceria com discos completos: chegam ao topo e à base com largura;
-- o corte de cada arco na linha do meio fica exatamente um `passo` à frente do anterior — o raio se cancela na conta. Ou seja, **`Passo` controla a largura das faixas e `Raio` controla só a curvatura**, sem um interferir no outro.
+As peças são empilhadas **pela própria altura**, então a pilha nunca se sobrepõe, qualquer que seja a progressão ou o número de peças — a `Abertura` só acrescenta respiro entre elas.
 
 | | |
 |---|---|
-| **Arcos** | quantas fronteiras, logo quantas faixas |
-| **Raio** | curvatura: raio grande deixa o arco quase reto, raio pequeno abauda |
-| **Decaimento** | como o raio muda de um arco para o próximo. Perto de 100% os arcos ficam paralelos; longe disso as curvaturas divergem e as faixas se estrangulam nas pontas |
-| **Passo** | distância entre cortes, isto é, a largura das faixas. Aceita negativo, e a fila inverte o sentido |
-| **Início** | onde o primeiro arco corta o quadro |
-| **Origem** | desloca o centro dos arcos na perpendicular, inclinando a composição |
+| **Peças** | quantas variantes, contando a elipse inteira |
+| **Raio** | tamanho da elipse principal |
+| **Achatamento** | razão entre os eixos: baixo deixa a elipse fina e larga, alto a aproxima do círculo |
+| **Progressão** | como a corda sobe de uma peça para a próxima. Em 100% ela sobe em passo constante; acima disso as primeiras peças ficam parecidas e as últimas afinam de vez |
+| **Abertura** | respiro entre as peças empilhadas |
+| **Variação** | irregularidade da altura das cordas, a partir da semente |
 
 ### Layout: Barcode
 
@@ -93,9 +90,9 @@ O loop fecha por construção: o padrão de uma linha se repete a cada célula, 
 
 | | |
 |---|---|
-| **Ângulo** | só no Arc Bands: direção contínua da fila, de -180° a 180°. No Barcode ela é discreta, pelos quatro botões de direção |
+| **Ângulo** | só no Arc Bands: gira a pilha inteira, de -180° a 180°. No Barcode e no Cadence a direção é discreta, pelos quatro botões |
 | **Formato** | 16:9, 1:1, 9:16, 4:5, 3:1 |
-| **Animação** | os modos disponíveis mudam com o layout. Arc Bands: `deslizar`, `sanfona`, `pulsar`, `girar`. Barcode: `caindo`, `andar`, `pulsar`, `sanfona`. Cadence: `correr`, `pulsar` |
+| **Animação** | os modos disponíveis mudam com o layout. Arc Bands: `deslizar` (as cordas sobem e descem, e cada peça atravessa suas variantes), `sanfona`, `pulsar`, `girar`. Barcode: `caindo`, `andar`, `pulsar`, `sanfona`. Cadence: `correr`, `pulsar` |
 | **Cores** | 8 paletas, em duas cores (acento e fundo) ou usando a paleta inteira, uma cor por faixa |
 | **Semente** | irregulariza a fila sem sair do sistema |
 
