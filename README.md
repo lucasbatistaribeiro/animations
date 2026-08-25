@@ -6,7 +6,7 @@ Dois geradores de assets: formas geométricas que se reformatam, reorganizam e r
 
 | | |
 |---|---|
-| [Arc Bands 2D](https://lucasbatistaribeiro.github.io/animations/stack-generator/) | Faixas delimitadas por arcos, com texto sobreposto |
+| [Arc Bands 2D](https://lucasbatistaribeiro.github.io/animations/stack-generator/) | Faixas de cor chapada delimitadas por arcos |
 | [Stacks 3D](https://lucasbatistaribeiro.github.io/animations/stack-generator/stacks-3d.html) | Blocos extrudados em projeção axonométrica, cinco layouts |
 
 Cada gerador é **um arquivo HTML autocontido**: sem dependências, sem build, sem servidor. Dá para abrir direto do disco — só o "Copiar link" e os downloads exigem `http(s)`, por causa das restrições de contexto seguro do navegador.
@@ -54,7 +54,6 @@ Duas consequências úteis dessa construção:
 | **Formato** | 16:9, 1:1, 9:16, 4:5, 3:1 |
 | **Animação** | `deslizar` a fila vai e volta · `sanfona` o passo abre e fecha · `pulsar` o raio respira · `girar` a direção roda · estático |
 | **Cores** | 6 paletas, em duas cores (acento e fundo) ou usando a paleta inteira, uma cor por faixa |
-| **Texto** | rótulo, título com quebra por barra vertical, e corpo — na cor tipográfica da paleta |
 | **Semente** | irregulariza os cortes e as curvaturas sem sair do sistema |
 
 `espaço` gera · `F` congela · `E` exporta PNG · clique na arte põe o primeiro corte ali.
