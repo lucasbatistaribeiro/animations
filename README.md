@@ -59,18 +59,21 @@ A fronteira é um **corte reto**. Cada célula tem um peso e uma proporção de 
 
 | | |
 |---|---|
-| **Barras** | quantas células |
+| **Barras** | quantas células, e também o período do padrão |
 | **Tinta** | proporção de tinta na primeira célula |
 | **Progressão** | fator geométrico da queda. 100% mantém o ritmo constante; abaixo disso a tinta afina e o papel engorda ao longo da fila |
+| **Direção** | esquerda, direita, cima ou baixo — orienta as barras e define para onde a fila caminha |
 | **Variação** | irregularidade dos pesos das células, a partir da semente |
+
+A animação padrão é **Andar**: a fila atravessa a tela em loop. O padrão é periódico — as células se repetem a cada `Barras` —, então rolar exatamente um período devolve a mesma imagem e a marcha nunca acumula deriva. Com `Progressão` em 100% não existe degrau entre um período e o seguinte e a fila anda sem costura alguma; abaixo disso, o degrau da rampa passa pela tela como a zona de silêncio de um código de barras.
 
 ### Comum aos dois
 
 | | |
 |---|---|
-| **Ângulo** | direção da fila: faixas verticais, horizontais ou diagonais |
+| **Ângulo** | só no Arc Bands: direção contínua da fila, de -180° a 180°. No Barcode ela é discreta, pelos quatro botões de direção |
 | **Formato** | 16:9, 1:1, 9:16, 4:5, 3:1 |
-| **Animação** | `deslizar` a fila vai e volta · `sanfona` os pesos abrem e fecham · `pulsar` raio ou tinta respira · `girar` a direção roda · estático |
+| **Animação** | os modos disponíveis mudam com o layout. Arc Bands: `deslizar`, `sanfona`, `pulsar`, `girar`. Barcode: `andar`, `pulsar`, `sanfona` |
 | **Cores** | 7 paletas, em duas cores (acento e fundo) ou usando a paleta inteira, uma cor por faixa |
 | **Semente** | irregulariza a fila sem sair do sistema |
 

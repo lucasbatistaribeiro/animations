@@ -39,6 +39,7 @@
   .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
   .row label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
   .row.off{opacity:.3;pointer-events:none}
+  input[type=range].off{opacity:.3;pointer-events:none}
   .row output{font-variant-numeric:tabular-nums;font-size:11px;color:var(--txt);min-width:46px;text-align:right}
   input[type=range]{
     -webkit-appearance:none;appearance:none;width:100%;height:2px;background:#33383b;margin:6px 0 14px;
@@ -64,6 +65,9 @@
   button.primary{background:var(--accent);border-color:var(--accent);color:#2b0b2f;font-weight:700}
   button.primary:hover{filter:brightness(1.08)}
   .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .quad{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
+  .quad.off{opacity:.3;pointer-events:none}
+  .quad button{letter-spacing:.06em}
   .swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .sw{border:1px solid var(--line);border-radius:var(--radius);padding:6px;cursor:pointer;background:#1a1d1f}
   .sw[aria-pressed=true]{border-color:var(--accent)}
@@ -121,6 +125,8 @@
     <input type="range" id="start" min="-40" max="130" step="1">
     <div class="row" id="r_angle"><label for="angle" id="angleLabel">Ângulo</label><output id="angleOut"></output></div>
     <input type="range" id="angle" min="-180" max="180" step="1">
+    <div class="row" id="r_dir"><label>Direção</label></div>
+    <div class="quad" id="dirs"></div>
     <div class="row" id="r_origin"><label for="origin" id="originLabel">Origem</label><output id="originOut"></output></div>
     <input type="range" id="origin" min="0" max="100" step="1">
     <div class="row"><label for="format">Formato</label></div>
@@ -143,7 +149,7 @@
       <option value="spin">Girar — a direção roda</option>
       <option value="off">Estático</option>
     </select>
-    <div class="row" style="margin-top:12px"><label for="amount">Intensidade</label><output id="amountOut"></output></div>
+    <div class="row" id="r_amount" style="margin-top:12px"><label for="amount">Intensidade</label><output id="amountOut"></output></div>
     <input type="range" id="amount" min="0" max="100" step="1">
     <div class="row"><label for="speed">Ritmo</label><output id="speedOut"></output></div>
     <input type="range" id="speed" min="1" max="80" step="1">
@@ -269,26 +275,43 @@ const LAYOUTS = {
               start:'Início', angle:'Ângulo', origin:'Origem' },
     ranges: { count:[2,24], radius:[20,300], decay:[50,130], step:[-20,60],
               start:[-40,130], origin:[0,100] },
-    uses: ['count','radius','decay','step','start','angle','origin']
+    uses: ['count','radius','decay','step','start','angle','origin'],
+    modes: ['slide','accordion','pulse','spin','off']
   },
   bars: {
     name: 'Barcode',
-    labels: { count:'Barras', radius:'Tinta', decay:'Progressão', angle:'Ângulo', origin:'Variação' },
+    labels: { count:'Barras', radius:'Tinta', decay:'Progressão', origin:'Variação' },
     ranges: { count:[3,48], radius:[5,95], decay:[40,140], origin:[0,100] },
-    uses: ['count','radius','decay','angle','origin']
+    uses: ['count','radius','decay','origin','dir'],
+    modes: ['march','pulse','accordion','off']
   }
+};
+
+/* direções discretas do Barcode: a fila anda no +x do referencial girado,
+   então o giro define para onde ela caminha */
+const DIRS = { right: 0, down: 90, left: 180, up: 270 };
+const DIR_LABELS = { left: '←  esquerda', right: '→  direita', up: '↑  cima', down: '↓  baixo' };
+
+const MODE_LABELS = {
+  march:     'Andar — a fila atravessa a tela',
+  slide:     'Deslizar — a fila vai e volta',
+  accordion: 'Sanfona — os pesos abrem e fecham',
+  pulse:     'Pulsar — respira',
+  spin:      'Girar — a direção roda',
+  off:       'Estático'
 };
 
 /* ---------- estado ---------- */
 const S = {
   layout: 'arcs',
-  count: 6, radius: 118, decay: 96, step: 12, start: 58, angle: 0, origin: 50,
+  count: 6, radius: 118, decay: 96, step: 12, start: 58, angle: 0, dir: 'left', origin: 50,
   format: 'wide', mode: 'slide', amount: 45, speed: 20,
   palette: 'bloom', multi: false,
   seed: newSeed(), frozen: false, phase: 0
 };
 
 const uses = k => LAYOUTS[S.layout].uses.includes(k);
+const spinAngle = () => S.layout === 'bars' ? DIRS[S.dir] : S.angle;
 
 const pal = () => PALETTES[S.palette];
 
@@ -344,30 +367,38 @@ function barList(W, H){
 
   const pulse = S.mode === 'pulse'     ? 1 + .5 * amt * Math.sin(p) : 1;
   const acc   = S.mode === 'accordion' ? amt : 0;
-  const slide = S.mode === 'slide'     ? .5 * amt * Math.sin(p) : 0;
 
+  // Padrão PERIÓDICO de n células. Como o índice absoluto entra por k % n,
+  // rolar exatamente um período devolve a mesma imagem: a marcha fecha em
+  // loop. Com Progressão em 100% não existe degrau entre um período e o
+  // seguinte, e a fila anda sem costura nenhuma.
   const cells = [];
-  let total = 0;
+  let period = 0;
   for (let i = 0; i < n; i++){
     const j = J[i % J.length];
-    const t = i / n + slide;
-    const duty = clamp(duty0 * pulse * Math.pow(fall, t * n), .02, .98);
+    const duty = clamp(duty0 * pulse * Math.pow(fall, i), .02, .98);
     const w = Math.max(.08, 1 + (j.r - 1) * vary * 4 + acc * .6 * Math.sin(p + i * .8));
     cells.push({ w, duty });
-    total += w;
+    period += w;
   }
 
-  const L = Math.hypot(W, H);           // cobre o quadro em qualquer angulo
-  const scale = L / total;
+  const L = Math.hypot(W, H);          // cobre o quadro em qualquer direção
+  const scale = L / period;            // um período preenche a diagonal
+  const periodPx = period * scale;
+  const march = S.mode === 'march' ? (p / TAU * periodPx) % periodPx : 0;
+
   const out = [];
-  let x = -L / 2;
-  for (let i = 0; i < n; i++){
-    const w = cells[i].w * scale;
-    out.push({
-      x, w: w * cells[i].duty,
-      fill: S.multi ? pal().bands[i % pal().bands.length] : pal().ink
+  let x = -L / 2 - periodPx + march;   // começa um período atrás da borda
+  let k = 0;
+  while (x < L / 2){
+    const c = cells[k % n];
+    const w = c.w * scale;
+    if (x + w > -L / 2) out.push({
+      x, w: w * c.duty,
+      fill: S.multi ? pal().bands[(k % n) % pal().bands.length] : pal().ink
     });
     x += w;
+    k++;
   }
   return out;
 }
@@ -380,7 +411,7 @@ function drawScene(ctx, W, H){
   const M = Math.hypot(W, H) * 2;
   ctx.save();
   ctx.translate(W / 2, H / 2);
-  ctx.rotate(S.angle * DEG);
+  ctx.rotate(spinAngle() * DEG);
   if (S.layout === 'bars'){
     for (const b of barList(W, H)){
       ctx.fillStyle = b.fill;
@@ -427,7 +458,8 @@ function frame(now){
   last = now;
   if (!S.frozen && S.mode !== 'off'){
     S.phase += dt / 1000 * (S.speed / 100) * 1.6;
-    if (S.mode === 'spin') S.angle = ((S.angle + dt / 1000 * (S.speed / 100) * 24 + 180) % 360) - 180;
+    if (S.mode === 'spin' && S.layout !== 'bars')
+      S.angle = ((S.angle + dt / 1000 * (S.speed / 100) * 24 + 180) % 360) - 180;
   }
   drawScene(ctx, canvas.width, canvas.height);
   requestAnimationFrame(frame);
@@ -458,7 +490,7 @@ function exportSVG(){
   const out = [
     '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">',
     '<rect width="' + W + '" height="' + H + '" fill="' + pal().bg + '"/>',
-    '<g transform="translate(' + n(W / 2) + ' ' + n(H / 2) + ') rotate(' + S.angle + ')">'
+    '<g transform="translate(' + n(W / 2) + ' ' + n(H / 2) + ') rotate(' + spinAngle() + ')">'
   ];
   // mesma primitiva e mesma ordem de pintura do canvas
   if (S.layout === 'bars'){
@@ -495,12 +527,30 @@ const OPTIONAL = ['count','radius','decay','step','start','angle','origin'];
 function syncLayout(){
   const L = LAYOUTS[S.layout];
   OPTIONAL.forEach(k => {
-    const row = $('r_' + k);
-    row.classList.toggle('off', !uses(k));
+    // o slider é irmão da linha do rótulo, não filho: os dois precisam do mesmo estado
+    $('r_' + k).classList.toggle('off', !uses(k));
+    $(k).classList.toggle('off', !uses(k));
     if (L.labels[k]) $(k + 'Label').textContent = L.labels[k];
     const rg = L.ranges[k];
     if (rg){ $(k).min = rg[0]; $(k).max = rg[1]; S[k] = clamp(S[k], rg[0], rg[1]); }
   });
+  // direção discreta só no Barcode; ângulo contínuo só no Arc Bands
+  const dir = uses('dir') ? '' : 'none', ang = uses('angle') ? '' : 'none';
+  $('r_dir').style.display = dir;
+  $('dirs').style.display = dir;
+  $('r_angle').style.display = ang;
+  $('angle').style.display = ang;
+  document.querySelectorAll('.dir').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.d === S.dir)));
+  // só os modos que fazem sentido no layout
+  if ($('mode').dataset.layout !== S.layout){
+    $('mode').innerHTML = L.modes.map(m =>
+      '<option value="' + m + '">' + MODE_LABELS[m] + '</option>').join('');
+    $('mode').dataset.layout = S.layout;
+  }
+  if (!L.modes.includes(S.mode)) S.mode = L.modes[0];
+  // Intensidade não faz nada na marcha
+  $('r_amount').classList.toggle('off', S.mode === 'march');
   document.querySelectorAll('.lay').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.k === S.layout)));
 }
@@ -519,7 +569,7 @@ function syncInputs(){
   syncMeta();
 }
 
-const HASH_KEYS = ['layout','count','radius','decay','step','start','angle','origin','format','mode','amount','speed',
+const HASH_KEYS = ['layout','count','radius','decay','step','start','angle','dir','origin','format','mode','amount','speed',
                    'palette','multi','seed'];
 function writeHash(){
   const o = {};
@@ -536,13 +586,19 @@ function readHash(){
 
 const PRESETS = {
   arcs: { count:6,  radius:118, decay:96, step:12, start:58, angle:0,  origin:50, palette:'bloom', mode:'slide',  amount:45 },
-  bars: { count:10, radius:95,  decay:68, step:12, start:58, angle:0,  origin:35, palette:'noir',  mode:'slide',  amount:35 }
+  bars: { count:10, radius:95,  decay:68, step:12, start:58, angle:0,  dir:'left', origin:35, palette:'noir', mode:'march', amount:35 }
 };
 function setLayout(k){
   S.layout = k;
   Object.assign(S, PRESETS[k]);
   syncInputs(); writeHash();
 }
+
+$('dirs').innerHTML = ['left','right','up','down'].map(d =>
+  '<button class="dir" data-d="' + d + '" aria-pressed="false">' + DIR_LABELS[d] + '</button>').join('');
+document.querySelectorAll('.dir').forEach(b => b.addEventListener('click', () => {
+  S.dir = b.dataset.d; syncInputs(); writeHash();
+}));
 
 $('layouts').innerHTML = Object.entries(LAYOUTS).map(([k, l]) =>
   '<button class="lay" data-k="' + k + '" aria-pressed="false">' + l.name + '</button>').join('');
