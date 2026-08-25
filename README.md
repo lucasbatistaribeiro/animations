@@ -6,7 +6,7 @@ Dois geradores de assets: formas geométricas que se reformatam, reorganizam e r
 
 | | |
 |---|---|
-| [Bands 2D](https://lucasbatistaribeiro.github.io/animations/stack-generator/) | Faixas de cor chapada: arcos ou código de barras |
+| [Bands 2D](https://lucasbatistaribeiro.github.io/animations/stack-generator/) | Faixas de cor chapada: arcos, código de barras ou compassos |
 | [Stacks 3D](https://lucasbatistaribeiro.github.io/animations/stack-generator/stacks-3d.html) | Blocos extrudados em projeção axonométrica, cinco layouts |
 
 Cada gerador é **um arquivo HTML autocontido**: sem dependências, sem build, sem servidor. Dá para abrir direto do disco — só o "Copiar link" e os downloads exigem `http(s)`, por causa das restrições de contexto seguro do navegador.
@@ -33,7 +33,7 @@ O Pages serve a branch `main` a partir da raiz.
 
 ## Bands 2D
 
-Dois layouts sobre a mesma ideia: uma fila de fronteiras divide o quadro em faixas de cor chapada. **Em nenhum dos dois a faixa é desenhada diretamente** — ela é o que sobra entre duas fronteiras.
+Três layouts sobre a mesma ideia: uma fila de fronteiras divide o quadro em faixas de cor chapada.
 
 ### Layout: Arc Bands
 
@@ -73,17 +73,33 @@ Na marcha, com `Progressão` em 100% não existe degrau entre um período e o se
 
 `Direção` orienta a fila e diz de qual borda o apoio segura: em `baixo`, ele fica no topo e as barras caem.
 
-### Comum aos dois
+### Layout: Cadence
+
+Cada **linha é um compasso próprio**: sua própria contagem de blocos e sua própria velocidade. A leitura vem do contraste entre elas — muitas listras finas em cima, poucas e largas embaixo, cada uma correndo no seu tempo.
+
+O loop fecha por construção: o padrão de uma linha se repete a cada célula, e cada linha avança um número **inteiro** de células por ciclo. Então todas voltam ao lugar ao mesmo tempo, mesmo andando em velocidades diferentes.
+
+| | |
+|---|---|
+| **Linhas** | quantos compassos empilhados |
+| **Blocos** | quantos blocos na primeira linha |
+| **Progressão** | como a contagem muda de uma linha para a próxima. Abaixo de 100% as linhas vão ficando mais largas para o fim |
+| **Espessura** | fração de tinta dentro de cada bloco |
+| **Ritmo** | o quanto as velocidades se espalham entre as linhas. Em 0 todas correm juntas |
+| **Direção** | para onde as linhas correm; em `cima`/`baixo` os compassos viram colunas |
+| **Variação** | irregularidade de contagem e espessura entre as linhas |
+
+### Comum aos três
 
 | | |
 |---|---|
 | **Ângulo** | só no Arc Bands: direção contínua da fila, de -180° a 180°. No Barcode ela é discreta, pelos quatro botões de direção |
 | **Formato** | 16:9, 1:1, 9:16, 4:5, 3:1 |
-| **Animação** | os modos disponíveis mudam com o layout. Arc Bands: `deslizar`, `sanfona`, `pulsar`, `girar`. Barcode: `caindo`, `andar`, `pulsar`, `sanfona` |
-| **Cores** | 7 paletas, em duas cores (acento e fundo) ou usando a paleta inteira, uma cor por faixa |
+| **Animação** | os modos disponíveis mudam com o layout. Arc Bands: `deslizar`, `sanfona`, `pulsar`, `girar`. Barcode: `caindo`, `andar`, `pulsar`, `sanfona`. Cadence: `correr`, `pulsar` |
+| **Cores** | 8 paletas, em duas cores (acento e fundo) ou usando a paleta inteira, uma cor por faixa |
 | **Semente** | irregulariza a fila sem sair do sistema |
 
-`espaço` gera · `F` congela · `E` exporta PNG · `1` e `2` trocam de layout · clique na arte move o primeiro corte.
+`espaço` gera · `F` congela · `E` exporta PNG · `1` `2` `3` trocam de layout · clique na arte move o primeiro corte.
 
 ### Export
 

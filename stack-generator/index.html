@@ -104,7 +104,7 @@
     </svg>
     <h1>Bands</h1>
   </div>
-  <p class="tag">Faixas de cor chapada, separadas por arcos ou por cortes retos.</p>
+  <p class="tag">Faixas de cor chapada: arcos, código de barras ou compassos.</p>
 
   <fieldset>
     <span class="grouplabel">Layout</span>
@@ -186,7 +186,7 @@
 
   <p class="hint">
     <kbd>espaço</kbd> gerar &middot; <kbd>F</kbd> congelar &middot; <kbd>E</kbd> exportar PNG<br>
-    <kbd>1</kbd> <kbd>2</kbd> troca de layout &middot; clique na arte move o primeiro corte.
+    <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> troca de layout &middot; clique na arte move o primeiro corte.
   </p>
 </aside>
 
@@ -251,7 +251,9 @@ const PALETTES = {
   paper:     { name:'Paper',     bg:'#e6e2d6', ink:'#c8492b',
                bands:['#c8492b','#e6e2d6','#1f1c17','#a89b7d','#4f6b52','#d8d2c2'] },
   noir:      { name:'Noir',      bg:'#f4f4f2', ink:'#141414',
-               bands:['#141414','#f4f4f2','#3d3d3d','#d8d8d3','#6b6b64','#ffffff'] }
+               bands:['#141414','#f4f4f2','#3d3d3d','#d8d8d3','#6b6b64','#ffffff'] },
+  volt:      { name:'Volt',      bg:'#0d0d0d', ink:'#ccff00',
+               bands:['#ccff00','#0d0d0d','#a3cc00','#1c1c1c','#e8ff7a','#2b2b2b'] }
 };
 
 /* ---------- formatos ---------- */
@@ -278,6 +280,15 @@ const LAYOUTS = {
     uses: ['count','radius','decay','step','start','angle','origin'],
     modes: ['slide','accordion','pulse','spin','off']
   },
+  cadence: {
+    name: 'Cadence',
+    labels: { count:'Linhas', step:'Blocos', radius:'Espessura', decay:'Progressão',
+              start:'Ritmo', origin:'Variação' },
+    ranges: { count:[2,14], step:[2,40], radius:[10,90], decay:[40,140],
+              start:[0,100], origin:[0,100] },
+    uses: ['count','step','radius','decay','start','origin','dir'],
+    modes: ['run','pulse','off']
+  },
   bars: {
     name: 'Barcode',
     labels: { count:'Barras', radius:'Tinta', decay:'Progressão', origin:'Variação' },
@@ -293,6 +304,7 @@ const DIRS = { right: 0, down: 90, left: 180, up: 270 };
 const DIR_LABELS = { left: '←  esquerda', right: '→  direita', up: '↑  cima', down: '↓  baixo' };
 
 const MODE_LABELS = {
+  run:       'Correr — cada linha no seu tempo',
   fall:      'Caindo — as barras se soltam do apoio',
   march:     'Andar — a fila atravessa a tela',
   slide:     'Deslizar — a fila vai e volta',
@@ -434,6 +446,44 @@ function barList(W, H){
   return out;
 }
 
+/* ---------- geometria: as linhas do Cadence ---------- *
+ * Cada linha e um compasso proprio: sua propria contagem de blocos e sua
+ * propria velocidade. Como o padrao de uma linha se repete a cada celula, e
+ * cada linha avanca um numero INTEIRO de celulas por ciclo, todas voltam ao
+ * lugar ao mesmo tempo — o loop fecha por construcao, mesmo com as linhas
+ * andando em velocidades diferentes.                                     */
+function cadenceList(W, H){
+  const rows = S.count, J = JIT, p = S.phase;
+  const blocks0 = S.step;
+  const duty = clamp(S.radius / 100, .05, .95);
+  const prog = S.decay / 100;
+  const spread = S.start / 100;
+  const vary = S.origin / 100;
+  const amt = S.amount / 100;
+
+  const vertical = S.dir === 'up' || S.dir === 'down';
+  const along = vertical ? H : W;      // eixo em que a linha corre
+  const across = vertical ? W : H;     // eixo em que as linhas se empilham
+  const sign = (S.dir === 'left' || S.dir === 'up') ? -1 : 1;
+  const pulse = S.mode === 'pulse' ? 1 + .45 * amt * Math.sin(p) : 1;
+
+  const out = [];
+  for (let r = 0; r < rows; r++){
+    const j = J[r % J.length];
+    const nb = Math.max(1, Math.round(blocks0 * Math.pow(prog, r) * (1 + (j.r - 1) * vary * 3)));
+    const cell = along / nb;
+    const w = clamp(duty * pulse * (1 + (j.o) * vary), .05, .95) * cell;
+    const m = 1 + Math.round(spread * 6 * r);            // voltas inteiras por ciclo
+    const off = S.mode === 'run' ? (sign * (p / TAU) * m * cell) % cell : 0;
+    const y0 = -across / 2 + across * r / rows;
+    const y1 = -across / 2 + across * (r + 1) / rows;
+    const fill = S.multi ? pal().bands[r % pal().bands.length] : pal().ink;
+    for (let i = -1; i <= nb; i++)
+      out.push({ x: -along / 2 + i * cell + off, w, y0, y1, fill });
+  }
+  return out;
+}
+
 /* ---------- desenho ---------- */
 function drawScene(ctx, W, H){
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -443,7 +493,12 @@ function drawScene(ctx, W, H){
   ctx.save();
   ctx.translate(W / 2, H / 2);
   ctx.rotate(spinAngle() * DEG);
-  if (S.layout === 'bars'){
+  if (S.layout === 'cadence'){
+    for (const b of cadenceList(W, H)){
+      ctx.fillStyle = b.fill;
+      ctx.fillRect(b.x, b.y0, b.w, b.y1 - b.y0);
+    }
+  } else if (S.layout === 'bars'){
     for (const b of barList(W, H)){
       ctx.fillStyle = b.fill;
       ctx.fillRect(b.x, -M / 2, b.w, M);
@@ -530,7 +585,10 @@ function exportSVG(){
     '<g transform="translate(' + n(W / 2) + ' ' + n(H / 2) + ') rotate(' + spinAngle() + ')">'
   ];
   // mesma primitiva e mesma ordem de pintura do canvas
-  if (S.layout === 'bars'){
+  if (S.layout === 'cadence'){
+    for (const b of cadenceList(W, H))
+      out.push('<rect x="' + n(b.x) + '" y="' + n(b.y0) + '" width="' + n(b.w) + '" height="' + n(b.y1 - b.y0) + '" fill="' + b.fill + '"/>');
+  } else if (S.layout === 'bars'){
     for (const b of barList(W, H))
       out.push('<rect x="' + n(b.x) + '" y="' + n(-M / 2) + '" width="' + n(b.w) + '" height="' + M + '" fill="' + b.fill + '"/>');
   } else {
@@ -587,7 +645,7 @@ function syncLayout(){
   }
   if (!L.modes.includes(S.mode)) S.mode = L.modes[0];
   // Intensidade não faz nada na marcha
-  const semAmp = S.mode === 'march' || S.mode === 'fall';
+  const semAmp = S.mode === 'march' || S.mode === 'fall' || S.mode === 'run';
   $('r_amount').classList.toggle('off', semAmp);
   $('amount').classList.toggle('off', semAmp);
   document.querySelectorAll('.lay').forEach(b =>
@@ -625,7 +683,8 @@ function readHash(){
 
 const PRESETS = {
   arcs: { count:6,  radius:118, decay:96, step:12, start:58, angle:0,  origin:50, palette:'bloom', mode:'slide',  amount:45 },
-  bars: { count:10, radius:95,  decay:68, step:12, start:58, angle:0,  dir:'down', origin:35, palette:'noir', mode:'fall', amount:35 }
+  bars: { count:10, radius:95,  decay:68, step:12, start:58, angle:0,  dir:'down', origin:35, palette:'noir', mode:'fall', amount:35 },
+  cadence: { count:4, radius:50, decay:62, step:26, start:35, angle:0, dir:'left', origin:25, palette:'volt', mode:'run', amount:40 }
 };
 function setLayout(k){
   S.layout = k;
@@ -695,7 +754,7 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Space'){ e.preventDefault(); regenerate(); }
   if (e.key.toLowerCase() === 'f'){ S.frozen = !S.frozen; syncInputs(); }
   if (e.key.toLowerCase() === 'e') exportPNG(2);
-  if (/^[12]$/.test(e.key)) setLayout(Object.keys(LAYOUTS)[+e.key - 1]);
+  if (/^[123]$/.test(e.key)) setLayout(Object.keys(LAYOUTS)[+e.key - 1]);
 });
 
 window.addEventListener('resize', resize);
