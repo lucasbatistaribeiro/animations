@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Arc Bands — gerador de arcos</title>
+<title>Bands — gerador de faixas</title>
 <style>
   :root{
     --panel:#111314;
@@ -38,6 +38,7 @@
   }
   .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
   .row label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+  .row.off{opacity:.3;pointer-events:none}
   .row output{font-variant-numeric:tabular-nums;font-size:11px;color:var(--txt);min-width:46px;text-align:right}
   input[type=range]{
     -webkit-appearance:none;appearance:none;width:100%;height:2px;background:#33383b;margin:6px 0 14px;
@@ -97,25 +98,30 @@
       <path d="M0 0h9a11 11 0 010 22H0z" fill="#e879f9"/>
       <path d="M11 1a10 10 0 010 20z" fill="#e879f9"/>
     </svg>
-    <h1>Arc Bands</h1>
+    <h1>Bands</h1>
   </div>
-  <p class="tag">Arcos que se cobrem e viram faixas de borda curva.</p>
+  <p class="tag">Faixas de cor chapada, separadas por arcos ou por cortes retos.</p>
+
+  <fieldset>
+    <span class="grouplabel">Layout</span>
+    <div class="btns" id="layouts"></div>
+  </fieldset>
 
   <fieldset>
     <legend>Composição</legend>
-    <div class="row"><label for="count">Arcos</label><output id="countOut"></output></div>
+    <div class="row" id="r_count"><label for="count" id="countLabel">Arcos</label><output id="countOut"></output></div>
     <input type="range" id="count" min="2" max="24" step="1">
-    <div class="row"><label for="radius">Raio</label><output id="radiusOut"></output></div>
+    <div class="row" id="r_radius"><label for="radius" id="radiusLabel">Raio</label><output id="radiusOut"></output></div>
     <input type="range" id="radius" min="20" max="300" step="1">
-    <div class="row"><label for="decay">Decaimento</label><output id="decayOut"></output></div>
+    <div class="row" id="r_decay"><label for="decay" id="decayLabel">Decaimento</label><output id="decayOut"></output></div>
     <input type="range" id="decay" min="50" max="130" step="1">
-    <div class="row"><label for="step">Passo</label><output id="stepOut"></output></div>
+    <div class="row" id="r_step"><label for="step" id="stepLabel">Passo</label><output id="stepOut"></output></div>
     <input type="range" id="step" min="-20" max="60" step="1">
-    <div class="row"><label for="start">Início</label><output id="startOut"></output></div>
+    <div class="row" id="r_start"><label for="start" id="startLabel">Início</label><output id="startOut"></output></div>
     <input type="range" id="start" min="-40" max="130" step="1">
-    <div class="row"><label for="angle">Ângulo</label><output id="angleOut"></output></div>
+    <div class="row" id="r_angle"><label for="angle" id="angleLabel">Ângulo</label><output id="angleOut"></output></div>
     <input type="range" id="angle" min="-180" max="180" step="1">
-    <div class="row"><label for="origin">Origem</label><output id="originOut"></output></div>
+    <div class="row" id="r_origin"><label for="origin" id="originLabel">Origem</label><output id="originOut"></output></div>
     <input type="range" id="origin" min="0" max="100" step="1">
     <div class="row"><label for="format">Formato</label></div>
     <select id="format">
@@ -174,7 +180,7 @@
 
   <p class="hint">
     <kbd>espaço</kbd> gerar &middot; <kbd>F</kbd> congelar &middot; <kbd>E</kbd> exportar PNG<br>
-    Clique na arte para pôr o primeiro corte ali.
+    <kbd>1</kbd> <kbd>2</kbd> troca de layout &middot; clique na arte move o primeiro corte.
   </p>
 </aside>
 
@@ -189,13 +195,20 @@
 
 <script>
 /* ------------------------------------------------------------------ *
- *  Arc Bands — faixas delimitadas por arcos.
+ *  Bands — faixas de cor chapada delimitadas por uma fila de fronteiras.
  *
- *  A primitiva não é a faixa: é o ARCO. Cada arco pinta todo o meio-plano
+ *  Em nenhum dos dois layouts a faixa é desenhada diretamente: ela é o que
+ *  sobra entre duas fronteiras.
+ *
+ *  Arc Bands — a fronteira é um ARCO. Cada arco pinta todo o meio-plano
  *  atrás de si, e a fila é pintada do último para o primeiro, alternando
- *  acento e fundo. Cada arco cobre o anterior e o que sobra entre dois
- *  vizinhos é uma faixa de altura cheia — reta de um lado, curva do outro.
- *  Nenhuma faixa é desenhada diretamente.
+ *  acento e fundo. Cada arco cobre o anterior, e o que sobra entre dois
+ *  vizinhos é uma faixa de altura cheia: reta de um lado, curva do outro.
+ *
+ *  Barcode — a fronteira é um CORTE RETO. Cada célula tem um peso e uma
+ *  proporção de tinta que cai geometricamente ao longo da fila: densa de
+ *  um lado, rarefeita do outro. Os pesos são normalizados no fim, então a
+ *  fila preenche o quadro exato em qualquer contagem.
  * ------------------------------------------------------------------ */
 
 const TAU = Math.PI * 2;
@@ -230,7 +243,9 @@ const PALETTES = {
   blueprint: { name:'Blueprint', bg:'#0a2540', ink:'#7de2ff',
                bands:['#7de2ff','#0a2540','#4361ff','#134a78','#c3b9ff','#0e3358'] },
   paper:     { name:'Paper',     bg:'#e6e2d6', ink:'#c8492b',
-               bands:['#c8492b','#e6e2d6','#1f1c17','#a89b7d','#4f6b52','#d8d2c2'] }
+               bands:['#c8492b','#e6e2d6','#1f1c17','#a89b7d','#4f6b52','#d8d2c2'] },
+  noir:      { name:'Noir',      bg:'#f4f4f2', ink:'#141414',
+               bands:['#141414','#f4f4f2','#3d3d3d','#d8d8d3','#6b6b64','#ffffff'] }
 };
 
 /* ---------- formatos ---------- */
@@ -242,13 +257,38 @@ const FORMATS = {
   banner: { a: 3,      w: 2400 }
 };
 
+/* ---------- layouts ---------- *
+ * Os dois sistemas partem da mesma ideia: uma fila de fronteiras que divide
+ * o quadro em faixas de cor chapada. No Arc Bands a fronteira e um arco; no
+ * Barcode e um corte reto, e o que varia e a proporcao tinta/papel.
+ * Cada layout renomeia e re-escala os controles que compartilha.        */
+const LAYOUTS = {
+  arcs: {
+    name: 'Arc Bands',
+    labels: { count:'Arcos', radius:'Raio', decay:'Decaimento', step:'Passo',
+              start:'Início', angle:'Ângulo', origin:'Origem' },
+    ranges: { count:[2,24], radius:[20,300], decay:[50,130], step:[-20,60],
+              start:[-40,130], origin:[0,100] },
+    uses: ['count','radius','decay','step','start','angle','origin']
+  },
+  bars: {
+    name: 'Barcode',
+    labels: { count:'Barras', radius:'Tinta', decay:'Progressão', angle:'Ângulo', origin:'Variação' },
+    ranges: { count:[3,48], radius:[5,95], decay:[40,140], origin:[0,100] },
+    uses: ['count','radius','decay','angle','origin']
+  }
+};
+
 /* ---------- estado ---------- */
 const S = {
+  layout: 'arcs',
   count: 6, radius: 118, decay: 96, step: 12, start: 58, angle: 0, origin: 50,
   format: 'wide', mode: 'slide', amount: 45, speed: 20,
   palette: 'bloom', multi: false,
   seed: newSeed(), frozen: false, phase: 0
 };
+
+const uses = k => LAYOUTS[S.layout].uses.includes(k);
 
 const pal = () => PALETTES[S.palette];
 
@@ -290,6 +330,48 @@ function arcList(W, H){
   return list.reverse();   // pinta do último para o primeiro
 }
 
+/* ---------- geometria: as barras ---------- *
+ * Cada celula tem um peso e uma proporcao de tinta. A proporcao cai de forma
+ * geometrica ao longo da fila: densa de um lado, rarefeita do outro. Os pesos
+ * sao normalizados no fim, entao a fila sempre preenche o quadro por inteiro,
+ * qualquer que seja a contagem ou o jitter.                              */
+function barList(W, H){
+  const n = S.count, J = JIT;
+  const amt = S.amount / 100, p = S.phase;
+  const duty0 = S.radius / 100;
+  const fall = S.decay / 100;
+  const vary = S.origin / 100;
+
+  const pulse = S.mode === 'pulse'     ? 1 + .5 * amt * Math.sin(p) : 1;
+  const acc   = S.mode === 'accordion' ? amt : 0;
+  const slide = S.mode === 'slide'     ? .5 * amt * Math.sin(p) : 0;
+
+  const cells = [];
+  let total = 0;
+  for (let i = 0; i < n; i++){
+    const j = J[i % J.length];
+    const t = i / n + slide;
+    const duty = clamp(duty0 * pulse * Math.pow(fall, t * n), .02, .98);
+    const w = Math.max(.08, 1 + (j.r - 1) * vary * 4 + acc * .6 * Math.sin(p + i * .8));
+    cells.push({ w, duty });
+    total += w;
+  }
+
+  const L = Math.hypot(W, H);           // cobre o quadro em qualquer angulo
+  const scale = L / total;
+  const out = [];
+  let x = -L / 2;
+  for (let i = 0; i < n; i++){
+    const w = cells[i].w * scale;
+    out.push({
+      x, w: w * cells[i].duty,
+      fill: S.multi ? pal().bands[i % pal().bands.length] : pal().ink
+    });
+    x += w;
+  }
+  return out;
+}
+
 /* ---------- desenho ---------- */
 function drawScene(ctx, W, H){
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -299,17 +381,24 @@ function drawScene(ctx, W, H){
   ctx.save();
   ctx.translate(W / 2, H / 2);
   ctx.rotate(S.angle * DEG);
-  for (const a of arcList(W, H)){
-    ctx.beginPath();
-    ctx.moveTo(a.cx, a.cy - a.r);
-    ctx.arc(a.cx, a.cy, a.r, -Math.PI / 2, Math.PI / 2);  // o bojo, virado para frente
-    ctx.lineTo(a.cx, M);                                  // e todo o meio-plano de trás
-    ctx.lineTo(-M, M);
-    ctx.lineTo(-M, -M);
-    ctx.lineTo(a.cx, -M);
-    ctx.closePath();
-    ctx.fillStyle = a.fill;
-    ctx.fill();
+  if (S.layout === 'bars'){
+    for (const b of barList(W, H)){
+      ctx.fillStyle = b.fill;
+      ctx.fillRect(b.x, -M / 2, b.w, M);
+    }
+  } else {
+    for (const a of arcList(W, H)){
+      ctx.beginPath();
+      ctx.moveTo(a.cx, a.cy - a.r);
+      ctx.arc(a.cx, a.cy, a.r, -Math.PI / 2, Math.PI / 2);  // o bojo, virado para frente
+      ctx.lineTo(a.cx, M);                                  // e todo o meio-plano de tras
+      ctx.lineTo(-M, M);
+      ctx.lineTo(-M, -M);
+      ctx.lineTo(a.cx, -M);
+      ctx.closePath();
+      ctx.fillStyle = a.fill;
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -372,11 +461,16 @@ function exportSVG(){
     '<g transform="translate(' + n(W / 2) + ' ' + n(H / 2) + ') rotate(' + S.angle + ')">'
   ];
   // mesma primitiva e mesma ordem de pintura do canvas
-  for (const a of arcList(W, H)){
-    const x = n(a.cx), y0 = n(a.cy - a.r), y1 = n(a.cy + a.r), r = n(a.r);
-    out.push('<path d="M' + x + ' ' + y0 + 'A' + r + ' ' + r + ' 0 0 1 ' + x + ' ' + y1 +
-             'L' + x + ' ' + M + 'L' + (-M) + ' ' + M + 'L' + (-M) + ' ' + (-M) + 'L' + x + ' ' + (-M) +
-             'Z" fill="' + a.fill + '"/>');
+  if (S.layout === 'bars'){
+    for (const b of barList(W, H))
+      out.push('<rect x="' + n(b.x) + '" y="' + n(-M / 2) + '" width="' + n(b.w) + '" height="' + M + '" fill="' + b.fill + '"/>');
+  } else {
+    for (const a of arcList(W, H)){
+      const x = n(a.cx), y0 = n(a.cy - a.r), y1 = n(a.cy + a.r), r = n(a.r);
+      out.push('<path d="M' + x + ' ' + y0 + 'A' + r + ' ' + r + ' 0 0 1 ' + x + ' ' + y1 +
+               'L' + x + ' ' + M + 'L' + (-M) + ' ' + M + 'L' + (-M) + ' ' + (-M) + 'L' + x + ' ' + (-M) +
+               'Z" fill="' + a.fill + '"/>');
+    }
   }
   out.push('</g>');
   out.push('</svg>');
@@ -396,7 +490,23 @@ function syncMeta(){
   NUM.forEach(k => $(k + 'Out').textContent =
     k === 'speed' ? (S.speed / 100).toFixed(2) : S[k] + (SUFFIX[k] || ''));
 }
+const OPTIONAL = ['count','radius','decay','step','start','angle','origin'];
+
+function syncLayout(){
+  const L = LAYOUTS[S.layout];
+  OPTIONAL.forEach(k => {
+    const row = $('r_' + k);
+    row.classList.toggle('off', !uses(k));
+    if (L.labels[k]) $(k + 'Label').textContent = L.labels[k];
+    const rg = L.ranges[k];
+    if (rg){ $(k).min = rg[0]; $(k).max = rg[1]; S[k] = clamp(S[k], rg[0], rg[1]); }
+  });
+  document.querySelectorAll('.lay').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.k === S.layout)));
+}
+
 function syncInputs(){
+  syncLayout();
   NUM.forEach(k => $(k).value = S[k]);
   $('format').value = S.format;
   $('mode').value = S.mode;
@@ -409,7 +519,7 @@ function syncInputs(){
   syncMeta();
 }
 
-const HASH_KEYS = ['count','radius','decay','step','start','angle','origin','format','mode','amount','speed',
+const HASH_KEYS = ['layout','count','radius','decay','step','start','angle','origin','format','mode','amount','speed',
                    'palette','multi','seed'];
 function writeHash(){
   const o = {};
@@ -423,6 +533,21 @@ function readHash(){
     HASH_KEYS.forEach(k => { if (k in o) S[k] = o[k]; });
   } catch (e){ /* hash inválido: ignora */ }
 }
+
+const PRESETS = {
+  arcs: { count:6,  radius:118, decay:96, step:12, start:58, angle:0,  origin:50, palette:'bloom', mode:'slide',  amount:45 },
+  bars: { count:10, radius:95,  decay:68, step:12, start:58, angle:0,  origin:35, palette:'noir',  mode:'slide',  amount:35 }
+};
+function setLayout(k){
+  S.layout = k;
+  Object.assign(S, PRESETS[k]);
+  syncInputs(); writeHash();
+}
+
+$('layouts').innerHTML = Object.entries(LAYOUTS).map(([k, l]) =>
+  '<button class="lay" data-k="' + k + '" aria-pressed="false">' + l.name + '</button>').join('');
+document.querySelectorAll('.lay').forEach(b =>
+  b.addEventListener('click', () => setLayout(b.dataset.k)));
 
 $('palettes').innerHTML = Object.entries(PALETTES).map(([k, p]) =>
   '<button class="sw" data-pal="' + k + '" aria-pressed="false">' +
@@ -475,6 +600,7 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Space'){ e.preventDefault(); regenerate(); }
   if (e.key.toLowerCase() === 'f'){ S.frozen = !S.frozen; syncInputs(); }
   if (e.key.toLowerCase() === 'e') exportPNG(2);
+  if (/^[12]$/.test(e.key)) setLayout(Object.keys(LAYOUTS)[+e.key - 1]);
 });
 
 window.addEventListener('resize', resize);
