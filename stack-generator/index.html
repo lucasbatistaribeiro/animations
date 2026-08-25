@@ -492,22 +492,29 @@ function drawScene(ctx, W, H){
   const M = Math.hypot(W, H) * 2;
   // Cadence e Barcode sao axiais, entao as bordas podem cair em pixel inteiro.
   // Sem isso a cobertura parcial mistura tinta e fundo e deixa um fio claro na
-  // divisa — o que parece um stroke, mas e antialiasing. Arredondar as DUAS
-  // bordas (nao a largura) mantem os retangulos vizinhos encostados sem fresta.
+  // divisa — o que parece um stroke, mas e antialiasing.
+  //
+  // A LARGURA da barra e arredondada sozinha, e nao como round(x+w)-round(x):
+  // essa diferenca depende da parte fracionaria de x, entao a barra mudava de
+  // espessura sozinha enquanto a fila rastejava — a linha inteira piscava.
+  // Barras vizinhas nao se encostam (ha papel entre elas), entao arredondar a
+  // largura nao abre fresta. Ja as LINHAS do Cadence se encostam, e por isso
+  // as bordas horizontais continuam arredondadas aos pares.
   const axial = S.layout === 'cadence' || S.layout === 'bars';
   const R = v => Math.round(v);
+  const Rw = v => Math.max(1, Math.round(v));
   ctx.save();
   ctx.translate(axial ? R(W / 2) : W / 2, axial ? R(H / 2) : H / 2);
   ctx.rotate(spinAngle() * DEG);
   if (S.layout === 'cadence'){
     for (const b of cadenceList(W, H)){
       ctx.fillStyle = b.fill;
-      ctx.fillRect(R(b.x), R(b.y0), Math.max(1, R(b.x + b.w) - R(b.x)), Math.max(1, R(b.y1) - R(b.y0)));
+      ctx.fillRect(R(b.x), R(b.y0), Rw(b.w), Math.max(1, R(b.y1) - R(b.y0)));
     }
   } else if (S.layout === 'bars'){
     for (const b of barList(W, H)){
       ctx.fillStyle = b.fill;
-      ctx.fillRect(R(b.x), -M / 2, Math.max(1, R(b.x + b.w) - R(b.x)), M);
+      ctx.fillRect(R(b.x), -M / 2, Rw(b.w), M);
     }
   } else {
     for (const a of arcList(W, H)){
@@ -592,13 +599,14 @@ function exportSVG(){
   ];
   // mesma primitiva e mesma ordem de pintura do canvas
   const R = v => Math.round(v);
+  const Rw = v => Math.max(1, Math.round(v));
   if (S.layout === 'cadence'){
     for (const b of cadenceList(W, H))
-      out.push('<rect x="' + R(b.x) + '" y="' + R(b.y0) + '" width="' + Math.max(1, R(b.x + b.w) - R(b.x)) +
+      out.push('<rect x="' + R(b.x) + '" y="' + R(b.y0) + '" width="' + Rw(b.w) +
                '" height="' + Math.max(1, R(b.y1) - R(b.y0)) + '" fill="' + b.fill + '"/>');
   } else if (S.layout === 'bars'){
     for (const b of barList(W, H))
-      out.push('<rect x="' + R(b.x) + '" y="' + n(-M / 2) + '" width="' + Math.max(1, R(b.x + b.w) - R(b.x)) +
+      out.push('<rect x="' + R(b.x) + '" y="' + n(-M / 2) + '" width="' + Rw(b.w) +
                '" height="' + M + '" fill="' + b.fill + '"/>');
   } else {
     for (const a of arcList(W, H)){
