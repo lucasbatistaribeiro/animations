@@ -1,12 +1,12 @@
 # Stack Generators
 
-Dois geradores de assets construídos sobre a mesma ideia — blocos que se reformatam, reorganizam e reconstroem — inspirados no sistema generativo do rebrand da Stack Overflow.
+Dois geradores de assets: formas geométricas que se reformatam, reorganizam e reconstroem, inspirados no sistema generativo do rebrand da Stack Overflow.
 
 **▶ [lucasbatistaribeiro.github.io/animations](https://lucasbatistaribeiro.github.io/animations/)**
 
 | | |
 |---|---|
-| [Block Grid 2D](https://lucasbatistaribeiro.github.io/animations/stack-generator/) | Grade de blocos construtivos que se reconstrói em tempo real |
+| [Arc Bands 2D](https://lucasbatistaribeiro.github.io/animations/stack-generator/) | Faixas delimitadas por arcos, com texto sobreposto |
 | [Stacks 3D](https://lucasbatistaribeiro.github.io/animations/stack-generator/stacks-3d.html) | Blocos extrudados em projeção axonométrica, cinco layouts |
 
 Cada gerador é **um arquivo HTML autocontido**: sem dependências, sem build, sem servidor. Dá para abrir direto do disco — só o "Copiar link" e os downloads exigem `http(s)`, por causa das restrições de contexto seguro do navegador.
@@ -19,7 +19,7 @@ Cada gerador é **um arquivo HTML autocontido**: sem dependências, sem build, s
 .
 ├── index.html                    # capa servida pelo GitHub Pages
 ├── stack-generator/
-│   ├── index.html                # Block Grid 2D
+│   ├── index.html                # Arc Bands 2D
 │   └── stacks-3d.html            # Stacks 3D
 ├── html.html                     # demo antigo: barra de progresso em CSS
 ├── style.css                     # css do demo antigo
@@ -31,36 +31,37 @@ O Pages serve a branch `main` a partir da raiz.
 
 ---
 
-## Block Grid 2D
+## Arc Bands 2D
 
-Grade de células sorteadas a partir de uma semente, onde cada célula recebe uma das **18 formas construtivas** derivadas da geometria do logo: cheio, meio, terço, sexto, quarto, diagonal, barras, escada, bandeja, notch, moldura, quarto de círculo (dois tamanhos), arco, ponto, cruz, T e L.
+A primitiva do sistema não é a faixa: é o **arco**. Cada arco pinta todo o meio-plano atrás de si, e a fila é pintada do último para o primeiro, alternando acento e fundo. Cada arco cobre o anterior, e o que sobra entre dois vizinhos é uma faixa de altura cheia — reta de um lado, curva do outro. Nenhuma faixa é desenhada diretamente.
+
+Duas consequências úteis dessa construção:
+
+- as faixas **não afinam** até virar ponta, como aconteceria com discos completos: elas chegam ao topo e à base com largura;
+- o corte de cada arco na linha do meio fica exatamente um `passo` à frente do anterior — o raio se cancela na conta. Ou seja, **`Passo` controla a largura das faixas e `Raio` controla só a curvatura**, sem um interferir no outro.
 
 ### Controles
 
 | | |
 |---|---|
-| **Colunas** | resolução da grade; as linhas vêm do formato escolhido |
-| **Densidade** | proporção de células ocupadas |
-| **Respiro** | folga em volta de cada bloco |
-| **Variedade** | peso do repertório expressivo (curvas, notch, moldura) contra o estrutural (barras e retângulos) |
-| **Formato** | 1:1, 16:9, 9:16, 4:5, 3:1 |
-| **Modo** | `rebuild` blocos aleatórios · `cascade` onda diagonal · `columns` · `rows` · `shuffle` troca de posições · estático |
-| **Ritmo / Intensidade** | frequência das reconstruções e quantos blocos entram em cada uma |
-| **Transição** | `slide` · `pop` · `cut` |
-| **Paleta** | 6 opções |
-| **Semente** | reproduz a composição inicial |
+| **Arcos** | quantas fronteiras, logo quantas faixas |
+| **Raio** | curvatura: raio grande deixa o arco quase reto, raio pequeno abauda |
+| **Decaimento** | como o raio muda de um arco para o próximo. Perto de 100% os arcos ficam paralelos; longe disso as curvaturas divergem e as faixas se estrangulam nas pontas |
+| **Passo** | distância entre cortes, isto é, a largura das faixas. Aceita negativo, e a fila inverte o sentido |
+| **Início** | onde o primeiro arco corta o quadro |
+| **Ângulo** | direção da fila: faixas verticais, horizontais ou diagonais |
+| **Origem** | desloca o centro dos arcos na perpendicular, inclinando a composição |
+| **Formato** | 16:9, 1:1, 9:16, 4:5, 3:1 |
+| **Animação** | `deslizar` a fila vai e volta · `sanfona` o passo abre e fecha · `pulsar` o raio respira · `girar` a direção roda · estático |
+| **Cores** | 6 paletas, em duas cores (acento e fundo) ou usando a paleta inteira, uma cor por faixa |
+| **Texto** | rótulo, título com quebra por barra vertical, e corpo — na cor tipográfica da paleta |
+| **Semente** | irregulariza os cortes e as curvaturas sem sair do sistema |
 
-`espaço` gera · `F` congela · `E` exporta PNG · clique na arte reconstrói os blocos sob o cursor.
+`espaço` gera · `F` congela · `E` exporta PNG · clique na arte põe o primeiro corte ali.
 
 ### Export
 
-PNG 1× e 2× (até 4800 px no banner), **SVG vetorial** e link compartilhável com o estado no hash da URL.
-
-### Como funciona
-
-As formas são definidas **uma única vez** em espaço unitário, através de uma abstração de caneta com duas implementações — uma escreve num `Path2D` para o canvas, a outra monta uma string `d` de SVG. Canvas e SVG compartilham a mesma geometria, então o vetor nunca sai diferente do que está na tela.
-
-Cada célula guarda a forma anterior e a nova; na transição a antiga desliza para fora enquanto a nova entra, com `clip` na célula e atraso escalonado por posição.
+PNG 1× e 2× (até 4800 px no banner), **SVG vetorial** e link compartilhável com o estado no hash da URL. O SVG usa a mesma primitiva e a mesma ordem de pintura do canvas, então o vetor não sai diferente da tela.
 
 ---
 
