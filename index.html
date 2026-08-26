@@ -72,12 +72,6 @@
   .thumb canvas{width:100%;height:100%;display:block}
   .thumb:hover{border-color:#3a3a40}
   .thumb[aria-pressed=true]{border-color:var(--accent)}
-  .thumb span{
-    position:absolute;left:0;right:0;bottom:0;padding:3px 4px;
-    font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;
-    color:#cfcfd4;background:linear-gradient(transparent,rgba(0,0,0,.85));
-    text-align:center;
-  }
   .empty{color:var(--dim);font-size:12px;padding:8px 2px}
 
   /* ---------- cards de controle ---------- */
@@ -1293,7 +1287,7 @@ function renderAssets(){
     g.innerHTML =
       '<div class="ghead">' +
         '<span class="gmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">' +
-        '<path d="m12 3 2.6 5.6 6.4.8-4.7 4.3 1.2 6.3L12 17l-5.5 3 1.2-6.3L3 9.4l6.4-.8L12 3Z"/></svg></span>' +
+        '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></span>' +
         '<span><span class="gtitle">' + id + '</span><br><span class="gsub">Templates</span></span>' +
       '</div>';
     const row = document.createElement('div');
@@ -1306,9 +1300,6 @@ function renderAssets(){
       const cv = document.createElement('canvas');
       cv.width = 132; cv.height = 132;
       b.appendChild(cv);
-      const cap = document.createElement('span');
-      cap.textContent = l.name;
-      b.appendChild(cap);
       b.addEventListener('click', () => {
         APP.eng = eng;
         eng.setLayout(l.key);
