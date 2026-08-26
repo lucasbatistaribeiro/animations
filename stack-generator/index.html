@@ -382,6 +382,83 @@ function arcList(W, H){
   return pecas;
 }
 
+/* ---------- geometria: as barras ---------- *
+ * Cada celula tem um peso e uma proporcao de tinta. A proporcao cai de forma
+ * geometrica ao longo da fila: densa de um lado, rarefeita do outro. Os pesos
+ * sao normalizados no fim, entao a fila sempre preenche o quadro por inteiro,
+ * qualquer que seja a contagem ou o jitter.                              */
+function barList(W, H){
+  const n = S.count, J = JIT;
+  const amt = S.amount / 100, p = S.phase;
+  const duty0 = clamp(S.radius / 100, .02, .98);
+  const fall = S.decay / 100;
+  const vary = S.origin / 100;
+  // As direções do Barcode são axiais, então o vão da fila é exatamente a
+  // dimensão do quadro naquela direção — não a diagonal. É o que garante que
+  // a barra de apoio caia dentro do quadro e que `Barras` signifique de fato
+  // o número de barras atravessando a tela.
+  const L = (S.dir === 'up' || S.dir === 'down') ? H : W;
+  const cor = i => S.multi ? pal().bands[(i % n) % pal().bands.length] : pal().ink;
+
+  if (S.mode === 'fall'){
+    // A barra de apoio nao sai do lugar; as outras se soltam dela e afinam.
+    // A diferenca em relacao a marcha e de onde vem a largura: aqui ela e
+    // funcao da DISTANCIA ate o apoio, nao da barra. Entao a barra afina
+    // enquanto se afasta, e nao carrega a propria espessura.
+    // Em frac = 1 cada barra assume o lugar (e a espessura) da anterior:
+    // a imagem se repete e o loop fecha.
+    const frac = (p / TAU) % 1;
+    const base = L / n;                               // passo constante: queda uniforme
+    const jit = u => {                                // jitter interpolado: continuo
+      const i = Math.floor(u), t = u - i;
+      const a = J[i % n].r - 1, b = J[(i + 1) % n].r - 1;
+      return 1 + (a * (1 - t) + b * t) * vary * 1.6;
+    };
+    const bar = u => {
+      const duty = clamp(duty0 * Math.pow(fall, u) * jit(u), .01, .99);
+      // piso de meio pixel: com contagem alta e progressão forte a cauda
+      // ficaria sub-pixel e o quadro pareceria vazio
+      return { x: -L / 2 + base * u, w: Math.max(base * duty, .6), fill: cor(Math.round(u)) };
+    };
+    const out = [bar(0)];                             // o apoio
+    for (let i = 0; i < n; i++) out.push(bar(i + frac));
+    return out;
+  }
+
+  const pulse = S.mode === 'pulse'     ? 1 + .5 * amt * Math.sin(p) : 1;
+  const acc   = S.mode === 'accordion' ? amt : 0;
+
+  // Padrão PERIÓDICO de n células. Como o índice absoluto entra por k % n,
+  // rolar exatamente um período devolve a mesma imagem: a marcha fecha em
+  // loop. Com Progressão em 100% não existe degrau entre um período e o
+  // seguinte, e a fila anda sem costura nenhuma.
+  const cells = [];
+  let period = 0;
+  for (let i = 0; i < n; i++){
+    const j = J[i % J.length];
+    const duty = clamp(duty0 * pulse * Math.pow(fall, i), .02, .98);
+    const w = Math.max(.08, 1 + (j.r - 1) * vary * 4 + acc * .6 * Math.sin(p + i * .8));
+    cells.push({ w, duty });
+    period += w;
+  }
+
+  const scale = L / period;            // um período preenche a diagonal
+  const periodPx = period * scale;
+  const march = S.mode === 'march' ? (p / TAU * periodPx) % periodPx : 0;
+
+  const out = [];
+  let x = -L / 2 - periodPx + march;   // começa um período atrás da borda
+  let k = 0;
+  while (x < L / 2){
+    const c = cells[k % n];
+    const w = c.w * scale;
+    if (x + w > -L / 2) out.push({ x, w: Math.max(w * c.duty, .6), fill: cor(k) });
+    x += w;
+    k++;
+  }
+  return out;
+}
+
 /* ---------- geometria: as linhas do Cadence ---------- *
  * Cada linha e um compasso proprio: sua propria contagem de blocos e sua
  * propria velocidade. Como o padrao de uma linha se repete a cada celula, e
@@ -419,6 +496,14 @@ function cadenceList(W, H){
   }
   return out;
 }
+
+/* Registro das geometrias. Serve de trava: se uma funcao sumir num refactor,
+   o arquivo quebra aqui no carregamento, com o nome do layout, em vez de
+   deixar um layout silenciosamente vazio na tela. */
+const GEOM = { arcs: arcList, bars: barList, cadence: cadenceList };
+Object.keys(LAYOUTS).forEach(k => {
+  if (typeof GEOM[k] !== 'function') throw new Error('layout sem geometria: ' + k);
+});
 
 /* ---------- desenho ---------- */
 function drawScene(ctx, W, H){
