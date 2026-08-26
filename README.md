@@ -12,7 +12,19 @@ A home **é** o gerador: canvas em tela cheia, painel flutuante à esquerda e ba
 | **Editor** | os controles do template ativo, em cards: forma, câmera (no 3D), movimento e saída |
 | **Barra** | menu, play/pause, paleta e exportar |
 
-Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só o "Copiar link" e os downloads exigem `http(s)`.
+Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só os downloads exigem `http(s)`.
+
+### Como usar
+
+| | |
+|---|---|
+| escolher | aba **Assets**, clique numa capa. O painel pula para o Editor com os controles daquele template |
+| ajustar | aba **Editor**: *Forma*, *Câmera* (só nos 3D), *Movimento* e *Saída* |
+| orbitar | nos templates 3D, arraste no canvas; a roda do mouse dá zoom |
+| paleta | botão das bolinhas na barra: troca a paleta e mostra a rampa de tons |
+| exportar | botão **Exportar** (PNG) ou o menu, que traz PNG, SVG (2D) e WebM (3D) |
+
+`espaço` play/pause · `N` nova semente · `E` exporta PNG
 
 ---
 
@@ -32,15 +44,15 @@ Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só o "
 
 O Pages serve a branch `main` a partir da raiz.
 
-> As duas páginas em `stack-generator/` continuam no ar e são a origem dos dois motores: a home carrega **cópias verbatim** do código delas, cada uma isolada numa IIFE. Isso significa que hoje o motor existe em dois lugares — o próximo passo é eliminar essa duplicação, seja apagando as páginas antigas, seja passando a gerá-las a partir da mesma fonte.
+As duas páginas em `stack-generator/` continuam no ar — ver [As páginas anteriores](#as-páginas-anteriores).
 
 ---
 
-## Bands 2D
+## Templates 2D
 
-Três layouts de formas chapadas, cada um construído a partir de uma única figura que se repete em variantes.
+Três formas chapadas, cada uma construída a partir de uma única figura que se repete em variantes. Os controles abaixo são os que aparecem no card *Forma* do Editor.
 
-### Layout: Arc Bands
+### Arc Bands
 
 Existe uma **elipse principal**, e cada peça é ela mesma cortada por uma corda cada vez mais baixa: a primeira é a elipse inteira, as seguintes são calotas cada vez mais rasas. É a figura sendo quebrada em variantes de si.
 
@@ -55,7 +67,7 @@ As peças são empilhadas **pela própria altura**, então a pilha nunca se sobr
 | **Abertura** | respiro entre as peças empilhadas |
 | **Variação** | irregularidade da altura das cordas, a partir da semente |
 
-### Layout: Barcode
+### Barcode
 
 A fronteira é um **corte reto**. Cada célula tem um peso e uma proporção de tinta, e essa proporção cai geometricamente ao longo da fila: densa de um lado, rarefeita do outro. Os pesos são normalizados no fim, então **a fila preenche o quadro exato** em qualquer contagem, com qualquer jitter.
 
@@ -75,7 +87,7 @@ Na marcha, com `Progressão` em 100% não existe degrau entre um período e o se
 
 `Direção` orienta a fila e diz de qual borda o apoio segura: em `baixo`, ele fica no topo e as barras caem.
 
-### Layout: Cadence
+### Cadence
 
 Cada **linha é um compasso próprio**: sua própria contagem de blocos e sua própria velocidade. A leitura vem do contraste entre elas — muitas listras finas em cima, poucas e largas embaixo, cada uma correndo no seu tempo.
 
@@ -97,25 +109,21 @@ O loop fecha por construção: o padrão de uma linha se repete a cada célula, 
 |---|---|
 | **Ângulo** | só no Arc Bands: gira a pilha inteira, de -180° a 180°. No Barcode e no Cadence a direção é discreta, pelos quatro botões |
 | **Formato** | 16:9, 1:1, 9:16, 4:5, 3:1 |
-| **Animação** | os modos disponíveis mudam com o layout. Arc Bands: `deslizar` (as cordas sobem e descem, e cada peça atravessa suas variantes), `sanfona`, `pulsar`, `girar`. Barcode: `caindo`, `andar`, `pulsar`, `sanfona`. Cadence: `correr`, `pulsar` |
+| **Animação** | os modos disponíveis mudam com o template. Arc Bands: `deslizar` (as cordas sobem e descem, e cada peça atravessa suas variantes), `sanfona`, `pulsar`, `girar`. Barcode: `caindo`, `andar`, `pulsar`, `sanfona`. Cadence: `correr`, `pulsar` |
 | **Cores** | 8 paletas, em duas cores (acento e fundo) ou usando a paleta inteira, uma cor por faixa |
 | **Semente** | irregulariza a fila sem sair do sistema |
 
-`espaço` gera · `F` congela · `E` exporta PNG · `1` `2` `3` trocam de layout · clique na arte move o primeiro corte.
-
-### Export
-
-PNG 1× e 2× (até 4800 px no banner), **SVG vetorial** e link compartilhável com o estado no hash da URL. O SVG usa a mesma primitiva e a mesma ordem de pintura do canvas, então o vetor não sai diferente da tela.
+O **SVG** usa a mesma primitiva e a mesma ordem de pintura do canvas, então o vetor não sai diferente da tela.
 
 ---
 
-## Stacks 3D
+## Templates 3D
 
 Renderer axonométrico próprio em canvas 2D, com *painter's algorithm*. A unidade é uma **peça**: um footprint 2D em sentido anti-horário mais `z0`/`z1`. Cada layout só descreve polígonos e alturas — prisma, cor de face e ordenação por profundidade são compartilhados.
 
-### Os cinco layouts
+### Os cinco templates
 
-| layout | geometria | `Effector` | `Lóbulos` | folga |
+| template | geometria | `Effector` | `Lóbulos` | folga |
 |---|---|---|---|---|
 | **Pyramid** | zigurate de placas maciças, cada uma apoiada na anterior | torção entre os níveis | — | **Recuo**: o quanto cada nível recua |
 | **Twist** | torre de placas quadradas com rotação progressiva | torção total | ondulação da largura na altura | **Espaço** entre placas |
@@ -142,25 +150,43 @@ Papéis por paleta: tampa, dois flancos, ponta e miolo. São 7 paletas — Stack
 
 **Sombra** é uma pista de profundidade estática por papel de face, não uma luz. Padrão 0 — totalmente chapado.
 
-### Câmera e enquadramento
+### Câmera
 
-Arrastar orbita, `shift`+arrastar (ou botão direito) move, scroll dá zoom; e há sliders de elevação, giro e zoom para valores exatos.
+Arraste no canvas para orbitar, roda do mouse para zoom, e os sliders de *Elevação* e *Zoom* no card Câmera para valores exatos.
 
-O **guia de enquadramento** mostra exatamente a área que vai ser exportada, no formato escolhido, com o resto escurecido. Em zoom 100 a cena preenche o quadro. O enquadramento é calculado a partir da bounding box amostrada ao longo do ciclo (e do giro, quando Rotate está ligado), então ele não "respira" durante a animação: a câmera que você posiciona é a que sai no arquivo.
+O enquadramento é calculado a partir da bounding box amostrada ao longo do ciclo — e do giro, quando Rotate está ligado. Então ele **não "respira"** durante a animação: a câmera que você posiciona é a que sai no arquivo.
 
-### Export
+### WebM
 
-**Frame** é um scrubber sobre os frames reais do clipe (duração × fps): arrastar pausa e define a fase, e o PNG sai naquele instante exato.
+O WebM **não é captura de tela** — cada frame é renderizado num canvas offscreen na resolução final e empurrado via `captureStream(0)` + `requestFrame()`, gravado por MediaRecorder em VP9 (com fallback VP8). Sai em **loop perfeito**: a fase avança exatamente `2π × ciclos` ao longo da duração, e as rotações avançam em múltiplos da simetria da peça.
 
-O **WebM** não é captura de tela — cada frame é renderizado num canvas offscreen na resolução final e empurrado via `captureStream(0)` + `requestFrame()`, gravado por MediaRecorder em VP9 (com fallback VP8). Sai em **loop perfeito**: a fase avança exatamente `2π × ciclos` ao longo da duração, e as rotações avançam em múltiplos da simetria da peça.
-
-Formatos 1:1, 16:9, 9:16, 4:5 e tela cheia; o tamanho é o lado menor, na convenção usual — 1080 dá 1920×1080, 1080×1920, 1080×1350.
+O tamanho segue a convenção usual, pelo lado menor: 1080 dá 1920×1080, 1080×1920, 1080×1350.
 
 > WebM/VP9 não abre nativamente no Premiere nem no After Effects. Para edição, converta: `ffmpeg -i entrada.webm -c:v prores_ks saida.mov`
 
-### Atalhos
+---
 
-`1`–`5` layout · `espaço` play/pause · `M` monocromático · `G` guia · `N` nova semente
+## Export
+
+| | |
+|---|---|
+| **PNG** | todos os templates. 2D sai em 2× do formato escolhido (até 3840×2160 no wide); 3D sai na resolução configurada |
+| **SVG** | só nos templates 2D — a mesma primitiva e a mesma ordem de pintura do canvas |
+| **WebM** | só nos templates 3D, em loop perfeito |
+
+---
+
+## As páginas anteriores
+
+`stack-generator/index.html` e `stack-generator/stacks-3d.html` continuam no ar e são a **origem dos dois motores**: a home carrega cópias verbatim do código delas, cada uma isolada numa IIFE.
+
+Elas ainda têm coisas que a home não trouxe:
+
+- **link compartilhável** com o estado no hash da URL (2D);
+- **guia de enquadramento** e **scrubber de frame** com duração, fps e ciclos (3D);
+- controles de câmera por número, congelar, e os atalhos próprios de cada página.
+
+Isso significa que hoje o motor vive em dois lugares. Resolver é apagar as páginas antigas — depois de trazer para a home o que falta — ou passar a gerá-las a partir da mesma fonte.
 
 ---
 
