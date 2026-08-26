@@ -676,7 +676,9 @@ function exportSVG(){
     formats: () => Object.entries(FORMATS).map(([k, f]) => ({ key:k, a:f.a })),
     format: () => S.format,
     setFormat: k => { S.format = k; },
-    exportPNG, exportSVG,
+    // o motor 2D exporta por escala; sem um padrao aqui o canvas sai 0x0
+    exportPNG: (scale = 2) => exportPNG(scale),
+    exportSVG,
     hasVideo: false
   };
 })();
