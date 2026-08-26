@@ -1,15 +1,18 @@
-# Stack Generators
+# Gerador
 
-Dois geradores de assets: formas geométricas que se reformatam, reorganizam e reconstroem, inspirados no sistema generativo do rebrand da Stack Overflow.
+Gerador de assets generativos — formas 2D e blocos extrudados em 3D — inspirado no sistema generativo do rebrand da Stack Overflow.
 
 **▶ [lucasbatistaribeiro.github.io/animations](https://lucasbatistaribeiro.github.io/animations/)**
 
+A home **é** o gerador: canvas em tela cheia, painel flutuante à esquerda e barra de ações embaixo. Não há página intermediária para escolher entre 2D e 3D — os dois convivem na aba *Assets*, como grupos de template.
+
 | | |
 |---|---|
-| [Bands 2D](https://lucasbatistaribeiro.github.io/animations/stack-generator/) | Formas chapadas: variantes de uma elipse, código de barras ou compassos |
-| [Stacks 3D](https://lucasbatistaribeiro.github.io/animations/stack-generator/stacks-3d.html) | Blocos extrudados em projeção axonométrica, cinco layouts |
+| **Assets** | busca e os templates, agrupados em `2d` e `3d`. Cada miniatura é desenhada pelo próprio motor, então mostra o template de verdade |
+| **Editor** | os controles do template ativo, em cards: forma, câmera (no 3D), movimento e saída |
+| **Barra** | menu, play/pause, paleta e exportar |
 
-Cada gerador é **um arquivo HTML autocontido**: sem dependências, sem build, sem servidor. Dá para abrir direto do disco — só o "Copiar link" e os downloads exigem `http(s)`, por causa das restrições de contexto seguro do navegador.
+Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só o "Copiar link" e os downloads exigem `http(s)`.
 
 ---
 
@@ -17,10 +20,10 @@ Cada gerador é **um arquivo HTML autocontido**: sem dependências, sem build, s
 
 ```
 .
-├── index.html                    # capa servida pelo GitHub Pages
+├── index.html                    # o gerador — a home
 ├── stack-generator/
-│   ├── index.html                # Bands 2D
-│   └── stacks-3d.html            # Stacks 3D
+│   ├── index.html                # Bands 2D, página anterior
+│   └── stacks-3d.html            # Stacks 3D, página anterior
 ├── html.html                     # demo antigo: barra de progresso em CSS
 ├── style.css                     # css do demo antigo
 ├── LICENSE                       # MIT
@@ -28,6 +31,8 @@ Cada gerador é **um arquivo HTML autocontido**: sem dependências, sem build, s
 ```
 
 O Pages serve a branch `main` a partir da raiz.
+
+> As duas páginas em `stack-generator/` continuam no ar e são a origem dos dois motores: a home carrega **cópias verbatim** do código delas, cada uma isolada numa IIFE. Isso significa que hoje o motor existe em dois lugares — o próximo passo é eliminar essa duplicação, seja apagando as páginas antigas, seja passando a gerá-las a partir da mesma fonte.
 
 ---
 
