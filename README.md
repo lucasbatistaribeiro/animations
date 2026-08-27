@@ -10,7 +10,7 @@ A home **é** o gerador: canvas em tela cheia, painel flutuante à esquerda e ba
 |---|---|
 | **Assets** | busca e os templates, agrupados em `2d` e `3d`. Cada miniatura é desenhada pelo próprio motor, então mostra o template de verdade |
 | **Editor** | os controles do template ativo, em cards: forma, câmera (no 3D), movimento e saída |
-| **Barra** | menu, play/pause, paleta e exportar |
+| **Barra** | o hambúrguer esconde e mostra o painel; play/pause; paleta; e **Exportar**, que abre o menu de ações |
 
 Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só os downloads exigem `http(s)`.
 
@@ -22,7 +22,8 @@ Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só os 
 | ajustar | aba **Editor**: *Forma*, *Câmera* (só nos 3D), *Movimento* e *Saída* |
 | orbitar | nos templates 3D, arraste no canvas; a roda do mouse dá zoom |
 | paleta | botão das bolinhas na barra: troca a paleta e mostra a rampa de tons |
-| exportar | botão **Exportar** (PNG) ou o menu, que traz PNG, SVG (2D) e WebM (3D) |
+| exportar | botão **Exportar**: abre o menu com PNG, SVG (2D), WebM (3D), nova semente e copiar link |
+| esconder o painel | o botão do hambúrguer. O enquadramento do export se recentra junto |
 
 | link | o estado vai no hash da URL: recarregar não perde nada e o link é compartilhável. **Copiar link** está no menu |
 

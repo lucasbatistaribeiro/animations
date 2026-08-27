@@ -34,6 +34,8 @@
     display:flex;flex-direction:column;overflow:hidden;
     box-shadow:0 20px 60px rgba(0,0,0,.6);
   }
+  .panel{transition:transform .18s ease, opacity .18s ease}
+  .panel.oculto{transform:translateX(-18px);opacity:0;pointer-events:none}
   .tabs{display:flex;gap:22px;padding:16px 20px 0;border-bottom:1px solid var(--line)}
   .tab{
     display:flex;align-items:center;gap:7px;padding:0 2px 11px;
@@ -289,6 +291,8 @@
  *                          aplica. Nunca entra no arquivo exportado
  *    video()/setVideo(k,v) controles de duração, fps, ciclos e frame,
  *                          num card próprio
+ *    setInset(px)          quanto espaço o painel ocupa à esquerda, para o
+ *                          enquadramento do export não ficar deslocado
  *    useCanvas(c)          recebe o canvas do palco, se precisar dele
  * ==================================================================== */
 
@@ -1079,7 +1083,7 @@ function viewFor(W, H){
 function cropBox(W, H){
   // área livre: evita o painel, para o guia nunca ficar escondido atrás dele
   const dpr = W / Math.max(1, window.innerWidth);
-  const inset = window.innerWidth > 900 ? 264 * dpr : 0;
+  const inset = recuoDoPainel * dpr;
   const AW = W - inset;
   const A = EXP_ASPECT[S.expFormat] || (AW / H);
   let w = AW * .92, h = w / A;
@@ -1254,6 +1258,11 @@ async function exportWebM(){
   let frameDirty = true;
   const needFrame = () => { frameDirty = true; };
 
+  /* Espaco reservado a esquerda para o painel flutuante. O motor nao tem como
+     saber se o painel esta aberto — quem sabe e a casca, entao ela avisa. Sem
+     isso, esconder o painel nao devolvia o espaco ao enquadramento. */
+  let recuoDoPainel = 264;
+
   const RANGES = {
     segments:[1,5], effector:[0,100], lobes:[1,12], height:[5,160], inner:[5,70], gap:[0,70]
   };
@@ -1320,6 +1329,7 @@ async function exportWebM(){
     hasVideo: true,
     // o guia mostra o recorte que o export ja aplica — sem ele o corte e invisivel
     drawGuide: (ctx, W, H) => drawGuide(ctx, W, H),
+    setInset: px => { recuoDoPainel = px; },
     video: () => [
       { key:'dur',    label:'Duração', min:1, max:12,  value:S.dur,    suffix:'s' },
       { key:'fps',    label:'FPS',     min:12, max:60, value:+S.fps,   suffix:'' },
@@ -1365,7 +1375,7 @@ const stage = $('stage');
 const sctx = stage.getContext('2d');
 ENG3D.useCanvas(stage);
 
-const APP = { eng: ENG2D, tab: 'assets', playing: true, busca: '', guia: false };
+const APP = { eng: ENG2D, tab: 'assets', playing: true, busca: '', guia: false, painel: true };
 const ENGINES = { '2d': ENG2D, '3d': ENG3D };
 
 /* Reconcilia o tamanho a cada quadro em vez de confiar so no evento de
@@ -1655,11 +1665,12 @@ function renderMenu(){
     b.addEventListener('click', () => { fn(); m.classList.remove('on'); });
     m.appendChild(b);
   };
+  item('Exportar PNG', APP.eng.format(), () => APP.eng.exportPNG());
+  if (APP.eng.exportSVG) item('Exportar SVG', 'vetor', () => APP.eng.exportSVG());
+  if (APP.eng.hasVideo) item('Exportar WebM', 'loop', () => APP.eng.exportWebM());
+  let d = document.createElement('div'); d.className = 'div'; m.appendChild(d);
   item('Nova semente', APP.eng.seed(), () => { APP.eng.reseed(); invalidate(); render(); });
-  item('Exportar PNG', '', () => APP.eng.exportPNG());
-  if (APP.eng.exportSVG) item('Exportar SVG', '', () => APP.eng.exportSVG());
-  if (APP.eng.hasVideo) item('Exportar WebM', '', () => APP.eng.exportWebM());
-  const d = document.createElement('div'); d.className = 'div'; m.appendChild(d);
+  d = document.createElement('div'); d.className = 'div'; m.appendChild(d);
   item('Copiar link', '', async () => {
     escreverHash();
     setTimeout(async () => {
@@ -1671,6 +1682,12 @@ function renderMenu(){
 
 /* ---------- render geral ---------- */
 function render(){
+  document.querySelector('.panel').classList.toggle('oculto', !APP.painel);
+  // o enquadramento do export precisa saber o espaco que o painel ocupa
+  const recuo = APP.painel && window.innerWidth > 900 ? 264 : 0;
+  for (const e of Object.values(ENGINES)) if (e.setInset) e.setInset(recuo);
+  $('btMenu').setAttribute('aria-pressed', String(APP.painel));
+  $('btMenu').title = APP.painel ? 'Esconder o painel' : 'Mostrar o painel';
   $('tabAssets').setAttribute('aria-selected', String(APP.tab === 'assets'));
   $('tabEditor').setAttribute('aria-selected', String(APP.tab === 'editor'));
   $('searchWrap').style.display = APP.tab === 'assets' ? '' : 'none';
@@ -1686,7 +1703,7 @@ $('tabAssets').addEventListener('click', () => { APP.tab = 'assets'; render(); }
 $('tabEditor').addEventListener('click', () => { APP.tab = 'editor'; render(); });
 $('search').addEventListener('input', e => { APP.busca = e.target.value; renderAssets(); });
 $('btPlay').addEventListener('click', () => { APP.playing = !APP.playing; render(); });
-$('btExport').addEventListener('click', () => APP.eng.exportPNG());
+$('btMenu').addEventListener('click', () => { APP.painel = !APP.painel; render(); });
 
 function popup(el, ancora){
   const r = ancora.getBoundingClientRect();
@@ -1696,7 +1713,7 @@ function popup(el, ancora){
   el.style.top = (r.top - el.offsetHeight - 12) + 'px';
 }
 $('btPal').addEventListener('click', e => { e.stopPropagation(); $('popMenu').classList.remove('on'); renderPal(); popup($('popPal'), $('btPal')); });
-$('btMenu').addEventListener('click', e => { e.stopPropagation(); $('popPal').classList.remove('on'); renderMenu(); popup($('popMenu'), $('btMenu')); });
+$('btExport').addEventListener('click', e => { e.stopPropagation(); $('popPal').classList.remove('on'); renderMenu(); popup($('popMenu'), $('btExport')); });
 document.addEventListener('click', e => {
   if (!e.target.closest('.pop') && !e.target.closest('.dock')){
     $('popPal').classList.remove('on');
