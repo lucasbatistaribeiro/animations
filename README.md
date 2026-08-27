@@ -179,7 +179,7 @@ Nos templates 3D o export recorta pelo **guia de enquadramento**: o botão no ca
 
 ## A casca
 
-Escura, mas com **elevação**: painel, card e campo ocupam degraus diferentes de uma mesma rampa de cinza, em vez de serem todos quase-preto separados só pela borda. Painel, barra e popovers são translúcidos com desfoque — a arte que está sendo gerada atravessa a casca, então a UI pesa menos sobre a composição e continua legível mesmo com uma paleta clara atrás.
+Escura, mas em **cinza médio** e com **elevação**: painel `#262626`, card `#333`, campo `#404040` — degraus de uma mesma rampa, em vez de três quase-pretos separados só pela borda. Cinza puro, sem viés de matiz: a única cor da tela é a arte gerada, e o acento da UI é claro (`#f0f0f0`), não colorido. Painel, barra e popovers são translúcidos com desfoque — a arte atravessa a casca, e a opacidade é 92% porque abaixo disso, com paleta clara atrás, o texto secundário cai de 4.5:1.
 
 O movimento é do sistema, não de cada componente: dois *easings* e três durações em variáveis CSS, usados em tudo. O que ele faz:
 

@@ -10,23 +10,30 @@
      A rampa de superfícies existe para dar ELEVAÇÃO: preto sobre preto não
      separa painel de card de campo, e a UI inteira virava uma mancha. Cada
      degrau sobe o suficiente para a borda deixar de ser a única pista.
+     Cinza médio, não quase-preto: o escuro anterior lia como um buraco na
+     tela e não dava para separar as superfícies sem forçar a vista.
      O painel e a barra são translúcidos: a arte que está sendo gerada
-     atravessa a casca, então a UI pesa menos sobre a composição.         */
+     atravessa a casca, então a UI pesa menos sobre a composição. A opacidade
+     é 92% e não menos porque abaixo disso, com paleta clara atrás, o texto
+     secundário cai de 4.5:1.                                             */
   :root{
-    --bg:#0d0e11;
-    --s1:#17181d;          /* painel, barra, popovers */
-    --s2:#20222a;          /* cards */
-    --s3:#292c35;          /* chips, campos, botões neutros */
-    --s4:#343945;          /* hover de s3 */
-    --line:#31353f;
-    --line-2:#454b5a;      /* borda em hover */
-    --txt:#f4f5f7;
-    --dim:#adb2bf;         /* secundário: legível mesmo com fundo claro atrás */
-    --accent:#5b8cff;
-    --accent-2:#8fb0ff;
-    --accent-soft:rgba(91,140,255,.18);
-    --sombra:0 18px 44px -14px rgba(0,0,0,.75), 0 2px 10px rgba(0,0,0,.45);
-    --topo:inset 0 1px 0 rgba(255,255,255,.055);
+    --bg:#161616;
+    --s1:#262626;          /* painel, barra, popovers */
+    --s2:#333;             /* cards */
+    --s3:#404040;          /* chips, campos, botões neutros */
+    --s4:#4d4d4d;          /* hover de s3 */
+    --line:#4a4a4a;
+    --line-2:#5e5e5e;      /* borda em hover */
+    --txt:#f5f5f5;
+    --dim:#b5b5b5;         /* secundário: legível mesmo com fundo claro atrás */
+    /* Cinza puro, sem viés de matiz: a única cor da tela é a arte gerada.
+       O acento é claro, não colorido — em cinza médio o contraste vem do
+       valor, e um acento de cor competiria com a composição atrás.       */
+    --accent:#f0f0f0;
+    --accent-2:#fff;
+    --accent-soft:rgba(255,255,255,.14);
+    --sombra:0 18px 44px -14px rgba(0,0,0,.6), 0 2px 10px rgba(0,0,0,.35);
+    --topo:inset 0 1px 0 rgba(255,255,255,.07);
     /* movimento */
     --e-out:cubic-bezier(.22,.61,.36,1);
     --e-mola:cubic-bezier(.34,1.38,.64,1);
@@ -44,8 +51,8 @@
   canvas#stage{position:fixed;inset:0;display:block}
   button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   ::-webkit-scrollbar{width:9px;height:9px}
-  ::-webkit-scrollbar-thumb{background:#343945;border-radius:5px;border:2px solid transparent;background-clip:content-box}
-  ::-webkit-scrollbar-thumb:hover{background:#454b5a;background-clip:content-box}
+  ::-webkit-scrollbar-thumb{background:#555;border-radius:5px;border:2px solid transparent;background-clip:content-box}
+  ::-webkit-scrollbar-thumb:hover{background:#6b6b6b;background-clip:content-box}
   ::-webkit-scrollbar-track{background:transparent}
 
   /* Um anel de foco só, para tudo. Antes não havia nenhum: dava para
@@ -69,8 +76,8 @@
       -webkit-backdrop-filter:blur(22px) saturate(1.35);
       backdrop-filter:blur(22px) saturate(1.35);
     }
-    .painel,.pop{background:rgba(23,24,29,.88)}
-    .barra{background:rgba(26,27,33,.88)}
+    .painel,.pop{background:rgba(38,38,38,.92)}
+    .barra{background:rgba(38,38,38,.92)}
   }
   @keyframes entraPainel{from{opacity:0;transform:translateX(-14px) scale(.985)}}
 
@@ -89,7 +96,6 @@
   .tinta{
     position:absolute;left:0;bottom:-1px;height:2px;width:0;
     background:var(--accent);border-radius:2px;
-    box-shadow:0 0 12px var(--accent-soft);
     transition:transform var(--t-3) var(--e-out), width var(--t-3) var(--e-out);
   }
 
@@ -100,7 +106,7 @@
     padding:9px 32px 9px 34px;color:var(--txt);font:inherit;font-size:12.5px;
     transition:background var(--t-2), border-color var(--t-2), box-shadow var(--t-2);
   }
-  .busca input::placeholder{color:#7c8190}
+  .busca input::placeholder{color:#8f8f8f}
   .busca input:hover{background:var(--s4)}
   .busca input:focus{outline:none;background:var(--s3);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
   .limpar{
@@ -133,19 +139,19 @@
   .capas{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
   .capa{
     position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;
-    background:#0a0a0b;border:1px solid var(--line);padding:0;display:block;
+    background:#1c1c1c;border:1px solid var(--line);padding:0;display:block;
     transition:transform var(--t-2) var(--e-out), border-color var(--t-2), box-shadow var(--t-2);
   }
   .capa canvas{width:100%;height:100%;display:block;transition:transform var(--t-3) var(--e-out)}
   .capa:hover{transform:translateY(-2px);border-color:var(--line-2);box-shadow:0 8px 18px -8px rgba(0,0,0,.8)}
   .capa:hover canvas{transform:scale(1.07)}
   .capa:active{transform:translateY(0) scale(.97);transition-duration:var(--t-1)}
-  .capa[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 6px 20px -8px var(--accent)}
+  .capa[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 6px 20px -8px rgba(0,0,0,.9)}
   /* O visto diz qual template está no palco — a borda sozinha some quando a
      miniatura tem muita cor na quina.                                    */
   .capa[aria-pressed=true]::after{
     content:'';position:absolute;right:5px;top:5px;width:14px;height:14px;border-radius:50%;
-    background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 13 4 4 10-10'/%3E%3C/svg%3E") center/9px no-repeat;
+    background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231c1c1c' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 13 4 4 10-10'/%3E%3C/svg%3E") center/9px no-repeat;
     box-shadow:0 0 0 2px var(--s2);
     animation:visto var(--t-3) var(--e-mola) both;
   }
@@ -166,7 +172,7 @@
   }
   /* Enquanto o slider está sendo arrastado o número acende: o olho está no
      canvas, e o valor precisa se anunciar sem exigir um segundo olhar.  */
-  .chip.vivo{color:#fff;background:var(--accent);transform:scale(1.08)}
+  .chip.vivo{color:#1c1c1c;background:var(--accent);transform:scale(1.08)}
   .csub{font-size:11px;color:var(--dim);margin-top:10px;display:flex;align-items:center;gap:6px}
   .csub code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--txt);background:var(--s3);padding:2px 6px;border-radius:6px;font-size:10.5px}
 
@@ -199,7 +205,7 @@
   }
   .seg button:hover{background:var(--s4);color:var(--txt)}
   .seg button:active{transform:scale(.96)}
-  .seg button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-2)}
+  .seg button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--line-2);color:var(--accent-2)}
   select{
     width:100%;background:var(--s3);border:1px solid transparent;border-radius:10px;
     padding:9px 10px;color:var(--txt);font:inherit;font-size:12px;cursor:pointer;
@@ -207,13 +213,13 @@
   }
   select:hover{background:var(--s4)}
   select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-  select option{background:#1c1e25;color:var(--txt)}
+  select option{background:#2e2e2e;color:var(--txt)}
 
   /* ---------- barra de baixo ---------- */
   .barra{
     position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:6;
     display:flex;align-items:center;gap:12px;padding:10px 12px;
-    background:#1a1b21;border:1px solid var(--line);border-radius:17px;
+    background:#262626;border:1px solid var(--line);border-radius:17px;
     box-shadow:var(--sombra),var(--topo);
     animation:entraBarra 420ms 60ms var(--e-out) both;
   }
@@ -235,7 +241,7 @@
   .pal:hover{background:var(--s4)}
   .pal:active{transform:scale(.96)}
   .bolinhas{display:flex}
-  .bolinhas i{width:22px;height:22px;border-radius:50%;border:2px solid #1a1b21;transition:background var(--t-3) var(--e-out)}
+  .bolinhas i{width:22px;height:22px;border-radius:50%;border:2px solid #303030;transition:background var(--t-3) var(--e-out)}
   .bolinhas i + i{margin-left:-9px}
   .pal .seta{width:12px;height:12px;color:var(--dim);transition:transform var(--t-2) var(--e-out)}
   .pal[aria-expanded=true] .seta{transform:rotate(180deg)}
@@ -246,7 +252,7 @@
   }
   .exportar:hover{background:var(--s4)}
   .exportar:active{transform:scale(.96)}
-  .exportar[aria-expanded=true]{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent);color:var(--accent-2)}
+  .exportar[aria-expanded=true]{background:var(--s4);box-shadow:inset 0 0 0 1px var(--line-2);color:var(--accent-2)}
   .exportar svg{width:15px;height:15px}
 
   /* ---------- popovers ---------- */
@@ -1735,7 +1741,7 @@ function renderAssets(){
     p.className = 'vazio';
     p.innerHTML = 'Nenhum template com <b>' + APP.busca.replace(/[<>&]/g, '') + '</b>.';
     const b = document.createElement('button');
-    b.style.cssText = 'display:block;margin:12px auto 0;padding:7px 14px;border-radius:10px;background:var(--s3);color:var(--txt);font-size:11.5px';
+    b.style.cssText = 'display:block;margin:12px auto 0;padding:7px 14px;border-radius:10px;background:var(--s3);color:var(--txt);font-size:11.5px;border:1px solid var(--line)';
     b.textContent = 'Limpar busca';
     b.addEventListener('click', limparBusca);
     p.appendChild(b);
@@ -1888,7 +1894,7 @@ function renderEditor(){
   const nova = document.createElement('button');
   nova.textContent = 'sortear';
   nova.dataset.fk = 'semente';
-  nova.style.cssText = 'color:var(--accent-2);font-size:11px;padding:0';
+  nova.style.cssText = 'color:var(--txt);font-size:11px;padding:0;text-decoration:underline;text-underline-offset:2px';
   nova.addEventListener('click', () => { eng.reseed(); invalidate(); render(); aviso('Nova semente: ' + eng.seed()); });
   sub.appendChild(nova);
   saida.appendChild(sub);
