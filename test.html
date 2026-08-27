@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gerador — teste de fumaça</title>
+<style>
+  :root{ --bg:#0b0b0c; --card:#141416; --line:#26262a; --txt:#f0f0f2; --dim:#8b8b90;
+         --ok:#37d67a; --bad:#ff4d4d; --warn:#ffb020; }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--bg);color:var(--txt);padding:28px 24px 60px;
+    font:13px/1.5 ui-sans-serif,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  h1{font-size:19px;margin:0 0 4px}
+  .sub{color:var(--dim);margin:0 0 20px;font-size:12.5px}
+  .banner{
+    display:inline-flex;align-items:center;gap:10px;padding:11px 18px;border-radius:12px;
+    font-size:14px;font-weight:700;margin-bottom:20px;
+  }
+  .banner.ok{background:rgba(55,214,122,.12);color:var(--ok);border:1px solid rgba(55,214,122,.35)}
+  .banner.bad{background:rgba(255,77,77,.12);color:var(--bad);border:1px solid rgba(255,77,77,.35)}
+  .banner.run{background:#1a1a1e;color:var(--dim);border:1px solid var(--line)}
+  table{border-collapse:collapse;width:100%;max-width:1100px;margin-bottom:26px;font-size:12.5px}
+  caption{text-align:left;font-weight:700;padding:0 0 8px;font-size:13.5px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim);font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  tbody tr:hover{background:#111114}
+  td.n{font-variant-numeric:tabular-nums;color:var(--dim)}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  .falha{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--bad)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:22px;max-width:1100px}
+  .card h2{font-size:13.5px;margin:0 0 10px}
+  .card p{margin:0 0 8px;color:var(--dim);font-size:12.5px}
+  code{background:#1c1c20;border-radius:4px;padding:1px 5px;font-size:11.5px}
+  iframe{position:fixed;left:-9999px;top:0;width:1280px;height:720px;border:0}
+</style>
+</head>
+<body>
+<h1>Teste de fumaça</h1>
+<p class="sub">
+  Dirige o <code>index.html</code> de verdade dentro de um iframe — não uma cópia do código,
+  senão o teste passaria enquanto o app quebra.
+</p>
+
+<div class="banner run" id="banner">rodando…</div>
+<div id="saida"></div>
+
+<iframe id="app" src="index.html"></iframe>
+
+<script>
+/* ------------------------------------------------------------------ *
+ *  O que este arquivo protege:
+ *
+ *  - um motor sumir num refactor (ja aconteceu: barList foi apagado ao
+ *    substituir um trecho delimitado por comentarios, e so foi notado
+ *    quando o Barcode apareceu vazio na tela);
+ *  - um template parar de desenhar em alguma combinacao de modo,
+ *    direcao ou contagem;
+ *  - o estado do motor ser corrompido por quem o le de fora — foi o que
+ *    acontecia com as miniaturas, que voltavam via setLayout e com isso
+ *    reaplicavam o preset, apagando os ajustes do usuario;
+ *  - o contrato do adaptador perder um metodo.
+ * ------------------------------------------------------------------ */
+
+const W = 320, H = 200;                       // pequeno de proposito: sao centenas de casos
+const cv = document.createElement('canvas');
+cv.width = W; cv.height = H;
+const ctx = cv.getContext('2d', { willReadFrequently: true });
+
+/* O contrato que a casca espera de qualquer motor. */
+const CONTRATO = ['id','layouts','layout','setLayout','draw','controls','motion','set','get',
+                  'palettes','palette','setPalette','seed','reseed','advance','formats',
+                  'format','setFormat','exportPNG','snapshot','restore','accent','setAccent'];
+
+const resultados = [];
+const registrar = (grupo, caso, falhas, extra) =>
+  resultados.push({ grupo, caso, ok: falhas.length === 0, falhas, extra: extra || '' });
+
+/* Analisa um quadro desenhado: transparencia e variedade de cor. */
+function analisar(){
+  const d = ctx.getImageData(0, 0, W, H).data;
+  const cores = new Map();
+  let transparentes = 0;
+  for (let i = 0; i < d.length; i += 4){
+    if (d[i + 3] !== 255) transparentes++;
+    const k = (d[i] << 16) | (d[i + 1] << 8) | d[i + 2];
+    cores.set(k, (cores.get(k) || 0) + 1);
+  }
+  const total = W * H;
+  const relevantes = [...cores.values()].filter(n => n / total > .005).length;
+  return { transparentes, cores: cores.size, relevantes };
+}
+
+function desenhar(eng){
+  ctx.clearRect(0, 0, W, H);
+  eng.draw(ctx, W, H);
+}
+
+/* ---------- as varreduras ---------- */
+function varrerTemplates(id, eng){
+  for (const l of eng.layouts()){
+    const estado = eng.snapshot();
+    eng.setLayout(l.key);
+
+    // eixos: modos (2D), Rotate/Wave (3D), direcoes, contagens e fases
+    const modos = eng.modes ? eng.modes().options.map(o => o[0]) : [null];
+    const dirs = eng.dirs && eng.dirs() ? eng.dirs().options.map(o => o[0]) : [null];
+    const ctlCount = eng.controls().find(c => c.key === 'count');
+    const contagens = ctlCount ? [...new Set([ctlCount.min, ctlCount.max])] : [null];
+    const fases = [0, 1.4, Math.PI * 2];
+
+    let casos = 0;
+    const falhas = [];
+    for (const m of modos){
+      if (m && eng.setMode) eng.setMode(m);
+      for (const dir of dirs){
+        if (dir && eng.setDir) eng.setDir(dir);
+        for (const n of contagens){
+          if (n !== null) eng.set('count', n);
+          for (const p of fases){
+            eng.set('phase', p);
+            casos++;
+            const rot = [m, dir, n, 'φ' + p.toFixed(1)].filter(x => x !== null).join('/');
+            try {
+              desenhar(eng);
+              const a = analisar();
+              if (a.transparentes) falhas.push(rot + ': ' + a.transparentes + ' px transparentes');
+              else if (a.relevantes < 2) falhas.push(rot + ': quadro chapado, só ' + a.relevantes + ' cor');
+            } catch (e){ falhas.push(rot + ': ' + e.message); }
+          }
+        }
+      }
+    }
+    // 3D nao tem modos: varre Rotate/Wave, que e a superficie de animacao dele
+    if (!eng.modes && eng.toggles){
+      for (const combo of [[false,false],[true,false],[false,true],[true,true]]){
+        const t = eng.toggles();
+        if (t.find(x => x.key === 'rotate').value !== combo[0]) eng.toggle('rotate');
+        if (t.find(x => x.key === 'wave').value !== combo[1]) eng.toggle('wave');
+        for (const p of [0, 1.4]){
+          eng.set('phase', p);
+          casos++;
+          try { desenhar(eng); const a = analisar();
+                if (a.transparentes) falhas.push('rot' + +combo[0] + '/wave' + +combo[1] + ': transparente');
+          } catch (e){ falhas.push('rot/wave: ' + e.message); }
+        }
+      }
+    }
+    eng.restore(estado);
+    registrar(id + ' · templates', l.name, falhas, casos + ' casos');
+  }
+}
+
+function varrerPaletas(id, eng){
+  const estado = eng.snapshot();
+  const falhas = [];
+  for (const pal of eng.palettes()){
+    eng.setPalette(pal.key);
+    try {
+      desenhar(eng);
+      const a = analisar();
+      if (a.transparentes) falhas.push(pal.name + ': ' + a.transparentes + ' px transparentes');
+      if (a.relevantes < 2) falhas.push(pal.name + ': quadro chapado');
+    } catch (e){ falhas.push(pal.name + ': ' + e.message); }
+  }
+  eng.restore(estado);
+  registrar(id + ' · paletas', 'todas as paletas', falhas, eng.palettes().length + ' paletas');
+}
+
+function varrerContrato(id, eng){
+  const faltando = CONTRATO.filter(k => typeof eng[k] !== 'function' && typeof eng[k] !== 'string');
+  registrar(id + ' · contrato', 'métodos do adaptador', faltando.map(k => 'falta ' + k),
+            CONTRATO.length - faltando.length + '/' + CONTRATO.length);
+
+  // todo template anunciado precisa de geometria que desenhe
+  const semGeometria = [];
+  const estado = eng.snapshot();
+  for (const l of eng.layouts()){
+    eng.setLayout(l.key);
+    try { desenhar(eng); } catch (e){ semGeometria.push(l.name + ': ' + e.message); }
+  }
+  eng.restore(estado);
+  registrar(id + ' · contrato', 'todo template tem geometria', semGeometria, eng.layouts().length + ' templates');
+}
+
+function varrerEstado(id, eng){
+  const falhas = [];
+  const guardado = eng.snapshot();
+  const outro = eng.layouts().find(l => l.key !== eng.layout());
+  const ctlN = eng.controls().find(c => c.key === 'count');
+
+  /* snapshot/restore precisa devolver o estado exatamente — foi o bug das
+     miniaturas. A comparacao usa um valor SENTINELA que eu mesmo ponho, e
+     repete com dois valores diferentes: comparar contra o estado ambiente
+     deixaria passar uma corrupcao constante, porque ela ja teria contaminado
+     a propria linha de base. Com dois sentinelas, uma constante so casa com
+     um deles. */
+  if (outro && ctlN){
+    for (const sentinela of [ctlN.min, ctlN.max]){
+      eng.set('count', sentinela);
+      const estado = eng.snapshot();
+      const antes = JSON.stringify(estado);
+      eng.setLayout(outro.key);
+      eng.set('phase', 3.1);
+      eng.reseed();
+      eng.restore(estado);
+      if (eng.get('count') !== sentinela)
+        falhas.push('restore devolveu count ' + eng.get('count') + ', esperado ' + sentinela);
+      else if (JSON.stringify(eng.snapshot()) !== antes)
+        falhas.push('restore não devolveu o estado (sentinela ' + sentinela + ')');
+    }
+  }
+  // set/get precisa ser fiel
+  const ctl = eng.controls()[0];
+  if (ctl){
+    eng.set(ctl.key, ctl.min);
+    if (eng.get(ctl.key) !== ctl.min) falhas.push('set/get divergem em ' + ctl.key);
+    eng.set(ctl.key, ctl.value);
+  }
+  // advance precisa dizer a verdade sobre ter mudado algo
+  const parado = eng.id === '2d' ? (eng.setMode('off'), eng.advance(16)) : null;
+  if (parado === true) falhas.push('advance disse que mudou com o template estático');
+  eng.restore(guardado);
+  registrar(id + ' · estado', 'snapshot, set/get, advance', falhas);
+}
+
+/* ---------- relatorio ---------- */
+function pintar(){
+  const grupos = [...new Set(resultados.map(r => r.grupo))];
+  const saida = document.getElementById('saida');
+  saida.innerHTML = '';
+  for (const g of grupos){
+    const linhas = resultados.filter(r => r.grupo === g);
+    const t = document.createElement('table');
+    t.innerHTML = '<caption>' + g + '</caption>' +
+      '<thead><tr><th>caso</th><th>resultado</th><th>cobertura</th><th>falhas</th></tr></thead>';
+    const tb = document.createElement('tbody');
+    for (const r of linhas){
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + r.caso + '</td>' +
+        '<td class="' + (r.ok ? 'ok' : 'bad') + '">' + (r.ok ? 'passou' : 'FALHOU') + '</td>' +
+        '<td class="n">' + r.extra + '</td>' +
+        '<td class="falha">' + r.falhas.slice(0, 4).join('<br>') +
+          (r.falhas.length > 4 ? '<br>… e mais ' + (r.falhas.length - 4) : '') + '</td>';
+      tb.appendChild(tr);
+    }
+    t.appendChild(tb);
+    saida.appendChild(t);
+  }
+  const ruins = resultados.filter(r => !r.ok).length;
+  const b = document.getElementById('banner');
+  b.className = 'banner ' + (ruins ? 'bad' : 'ok');
+  b.textContent = ruins
+    ? ruins + ' de ' + resultados.length + ' verificações falharam'
+    : 'tudo passou — ' + resultados.length + ' verificações';
+}
+
+function erroDeAcesso(msg){
+  const b = document.getElementById('banner');
+  b.className = 'banner bad';
+  b.textContent = 'não consegui alcançar o app';
+  document.getElementById('saida').innerHTML =
+    '<div class="card"><h2>' + msg + '</h2>' +
+    '<p>Esta página dirige o <code>index.html</code> por dentro de um iframe, e o navegador ' +
+    'só permite isso na mesma origem. Em <code>file://</code> cada arquivo é uma origem opaca, ' +
+    'então o acesso é bloqueado.</p>' +
+    '<p>Abra por <code>http(s)</code>. Publicado: ' +
+    '<a href="https://lucasbatistaribeiro.github.io/animations/test.html">' +
+    'lucasbatistaribeiro.github.io/animations/test.html</a>. ' +
+    'Local: <code>python -m http.server</code> na raiz do repositório.</p></div>';
+}
+
+document.getElementById('app').addEventListener('load', () => {
+  let G;
+  try {
+    G = document.getElementById('app').contentWindow.__gerador;
+  } catch (e){ return erroDeAcesso('Acesso ao iframe bloqueado: ' + e.message); }
+  if (!G) return erroDeAcesso('O app carregou mas não expôs window.__gerador.');
+
+  const t0 = performance.now();
+  for (const [id, eng] of Object.entries(G.ENGINES)){
+    varrerContrato(id, eng);
+    varrerTemplates(id, eng);
+    varrerPaletas(id, eng);
+    varrerEstado(id, eng);
+  }
+  const ms = Math.round(performance.now() - t0);
+  registrar('resumo', 'tempo da varredura', [], ms + ' ms');
+  pintar();
+  window.__resultado = {
+    total: resultados.length,
+    falhou: resultados.filter(r => !r.ok).length,
+    ms,
+    detalhes: resultados
+  };
+});
+</script>
+</body>
+</html>

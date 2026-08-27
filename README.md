@@ -33,6 +33,7 @@ Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só os 
 ```
 .
 ├── index.html                    # o gerador — a home
+├── test.html                     # teste de fumaça
 ├── stack-generator/
 │   ├── index.html                # Bands 2D, página anterior
 │   └── stacks-3d.html            # Stacks 3D, página anterior
@@ -173,6 +174,18 @@ O tamanho segue a convenção usual, pelo lado menor: 1080 dá 1920×1080, 1080�
 | **PNG** | todos os templates. 2D sai em 2× do formato escolhido (até 3840×2160 no wide); 3D sai na resolução configurada |
 | **SVG** | só nos templates 2D — a mesma primitiva e a mesma ordem de pintura do canvas |
 | **WebM** | só nos templates 3D, em loop perfeito |
+
+---
+
+## Teste de fumaça
+
+**[/test.html](https://lucasbatistaribeiro.github.io/animations/test.html)** varre os dois motores e imprime uma tabela: contrato do adaptador, todos os templates em cada modo, direção, contagem mínima e máxima e três fases, todas as paletas, e a integridade do estado. São ~290 casos de desenho em menos de um segundo.
+
+Ele dirige o `index.html` **de verdade**, dentro de um iframe — não uma cópia do código, senão passaria enquanto o app quebra. Por isso precisa de `http(s)`: em `file://` cada arquivo é uma origem opaca e o navegador bloqueia o acesso ao iframe. Localmente, `python -m http.server` na raiz resolve.
+
+O que ele checa em cada caso: não lançar, não deixar pixel transparente, e não sair um quadro chapado de uma cor só. E fora do desenho: que `snapshot`/`restore` devolvam o estado exato e que `set`/`get` não divirjam.
+
+> A verificação do estado usa **dois valores sentinela** em vez de comparar com o estado ambiente. Uma corrupção constante contamina a própria linha de base — foi o que aconteceu na primeira versão desta checagem, que passava enquanto o bug estava injetado.
 
 ---
 
