@@ -99,23 +99,44 @@
     transition:transform var(--t-3) var(--e-out), width var(--t-3) var(--e-out);
   }
 
-  .busca{padding:14px 20px 4px;position:relative;flex:0 0 auto}
-  .busca .lupa{position:absolute;left:33px;top:50%;transform:translateY(-38%);width:14px;height:14px;color:var(--dim);pointer-events:none}
-  .busca input{
+  .busca{padding:14px 20px 4px;flex:0 0 auto}
+  /* O campo e a caixa de referencia. Antes a lupa se posicionava contra o
+     WRAPPER, que tem 14px de padding em cima e 4 embaixo: o meio dele nunca
+     e o meio do campo, e a lupa ficava ~3px acima da linha do texto.     */
+  .campo{position:relative;display:flex;align-items:center}
+  .campo .lupa{
+    position:absolute;left:13px;top:0;bottom:0;margin:auto;
+    width:14px;height:14px;color:var(--dim);pointer-events:none;
+  }
+  .campo input{
     width:100%;background:var(--s3);border:1px solid transparent;border-radius:999px;
-    padding:9px 32px 9px 34px;color:var(--txt);font:inherit;font-size:12.5px;
+    padding:9px 34px;color:var(--txt);font:inherit;font-size:12.5px;line-height:18px;
     transition:background var(--t-2), border-color var(--t-2), box-shadow var(--t-2);
   }
-  .busca input::placeholder{color:#8f8f8f}
-  .busca input:hover{background:var(--s4)}
-  .busca input:focus{outline:none;background:var(--s3);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-  .limpar{
-    position:absolute;right:28px;top:50%;transform:translateY(-50%) scale(.7);
-    width:20px;height:20px;border-radius:50%;display:grid;place-items:center;
-    color:var(--dim);background:var(--s4);opacity:0;pointer-events:none;
-    transition:opacity var(--t-1), transform var(--t-2) var(--e-mola), color var(--t-1);
+  .campo input::placeholder{color:#8f8f8f}
+  .campo input:hover{background:var(--s4)}
+  .campo input:focus{outline:none;background:var(--s3);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  /* Os dois ocupam o mesmo canto e nunca coexistem: a tecla enquanto o campo
+     esta vazio, o X assim que ha o que limpar.                           */
+  .limpar,.atalho{
+    position:absolute;right:9px;top:0;bottom:0;margin:auto;
+    height:20px;display:grid;place-items:center;
+    opacity:0;pointer-events:none;transition:opacity var(--t-1);
   }
-  .limpar.on{opacity:1;pointer-events:auto;transform:translateY(-50%) scale(1)}
+  .limpar{
+    width:20px;border-radius:50%;color:var(--dim);background:var(--s4);
+    transform:scale(.7);transition:opacity var(--t-1), transform var(--t-2) var(--e-mola), color var(--t-1);
+  }
+  .limpar.on{opacity:1;pointer-events:auto;transform:scale(1)}
+  .atalho.on{opacity:1}
+  /* Com o cursor dentro do campo a tecla nao serve mais para nada. Quem
+     decide isso e o CSS: ler o foco de dentro do evento de blur dependia de
+     quando activeElement muda, e ficava preso em falso.                  */
+  .campo:focus-within .atalho{opacity:0}
+  .atalho kbd{
+    font:inherit;font-size:10px;background:var(--s4);border:1px solid var(--line);
+    border-radius:5px;padding:1px 6px;color:var(--dim);
+  }
   .limpar:hover{color:var(--txt)}
   .limpar svg{width:10px;height:10px}
 
@@ -350,11 +371,14 @@
   </div>
 
   <div class="busca" id="buscaWrap">
-    <svg class="lupa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-    <input id="busca" type="text" placeholder="Buscar template…  (/)" spellcheck="false" autocomplete="off" aria-label="Buscar template">
-    <button class="limpar" id="limpar" title="Limpar busca" aria-label="Limpar busca" tabindex="-1">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-    </button>
+    <div class="campo">
+      <svg class="lupa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="busca" type="text" placeholder="Buscar template…" spellcheck="false" autocomplete="off" aria-label="Buscar template">
+      <span class="atalho on" id="atalho" aria-hidden="true"><kbd>/</kbd></span>
+      <button class="limpar" id="limpar" title="Limpar busca" aria-label="Limpar busca" tabindex="-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
   </div>
 
   <div class="corpo" id="corpo" role="tabpanel"></div>
@@ -1752,7 +1776,7 @@ const stage = $('stage');
 const sctx = stage.getContext('2d');
 ENG3D.useCanvas(stage);
 
-const APP = { eng: ENG2D, tab: 'assets', playing: true, busca: '', guia: false, painel: true };
+const APP = { eng: ENG2D, tab: 'assets', playing: true, busca: '', guia: false, painel: true, recuo: 0 };
 const ENGINES = { '2d': ENG2D, '3d': ENG3D };
 
 /* Reconcilia o tamanho a cada quadro em vez de confiar so no evento de
@@ -1823,9 +1847,15 @@ function thumbCanvas(eng, key){
   cv = document.createElement('canvas');
   cv.width = 132; cv.height = 132;
   const estado = eng.snapshot();
+  // O recuo do painel e enquadramento DO PALCO — existe para o export nao
+  // cair atras do painel. Numa miniatura ele nao significa nada: empurrava a
+  // peca uns 24px para a direita num quadro de 132 e ainda encolhia a area
+  // util, entao todo cover 3D saia descentralizado. Zera em volta do desenho.
+  if (eng.setInset) eng.setInset(0);
   eng.setLayout(key);
   try { eng.draw(cv.getContext('2d'), cv.width, cv.height); } catch (e){ /* ignora */ }
   eng.restore(estado);
+  if (eng.setInset) eng.setInset(APP.recuo);
   THUMBS.set(chave, cv);
   return cv;
 }
@@ -2164,8 +2194,8 @@ function render(){
 
   $('painel').classList.toggle('oculto', !APP.painel);
   // o enquadramento do export precisa saber o espaco que o painel ocupa
-  const recuo = APP.painel && window.innerWidth > 900 ? 264 : 0;
-  for (const e of Object.values(ENGINES)) if (e.setInset) e.setInset(recuo);
+  APP.recuo = APP.painel && window.innerWidth > 900 ? 264 : 0;
+  for (const e of Object.values(ENGINES)) if (e.setInset) e.setInset(APP.recuo);
   $('btMenu').setAttribute('aria-pressed', String(APP.painel));
   const rotMenu = APP.painel ? 'Esconder o painel (H)' : 'Mostrar o painel (H)';
   $('btMenu').title = rotMenu;
@@ -2238,19 +2268,27 @@ $('abaAssets').parentNode.addEventListener('keydown', e => {
   $(destino === 'assets' ? 'abaAssets' : 'abaEditor').focus();
 });
 
+/* Quem ocupa o canto direito do campo: a tecla enquanto ele esta vazio, o X
+   assim que ha texto. Os dois nunca coexistem. O foco fica com o CSS. */
+function cantoDaBusca(){
+  const tem = !!APP.busca;
+  $('limpar').classList.toggle('on', tem);
+  $('atalho').classList.toggle('on', !tem);
+}
 function limparBusca(){
   APP.busca = '';
   $('busca').value = '';
-  $('limpar').classList.remove('on');
   renderAssets();
   $('busca').focus();
+  cantoDaBusca();
 }
 $('busca').addEventListener('input', e => {
   APP.busca = e.target.value;
-  $('limpar').classList.toggle('on', !!APP.busca);
+  cantoDaBusca();
   $('corpo').classList.remove('anima');
   renderAssets();
 });
+
 $('busca').addEventListener('keydown', e => {
   if (e.key === 'Escape'){ e.stopPropagation(); limparBusca(); }
 });
