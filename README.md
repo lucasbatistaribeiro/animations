@@ -24,6 +24,8 @@ Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só os 
 | paleta | botão das bolinhas na barra: troca a paleta e mostra a rampa de tons |
 | exportar | botão **Exportar** (PNG) ou o menu, que traz PNG, SVG (2D) e WebM (3D) |
 
+| link | o estado vai no hash da URL: recarregar não perde nada e o link é compartilhável. **Copiar link** está no menu |
+
 `espaço` play/pause · `N` nova semente · `E` exporta PNG
 
 ---
@@ -34,18 +36,13 @@ Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só os 
 .
 ├── index.html                    # o gerador — a home
 ├── test.html                     # teste de fumaça
-├── stack-generator/
-│   ├── index.html                # Bands 2D, página anterior
-│   └── stacks-3d.html            # Stacks 3D, página anterior
 ├── html.html                     # demo antigo: barra de progresso em CSS
 ├── style.css                     # css do demo antigo
 ├── LICENSE                       # MIT
 └── README.md
 ```
 
-O Pages serve a branch `main` a partir da raiz.
-
-As duas páginas em `stack-generator/` continuam no ar — ver [As páginas anteriores](#as-páginas-anteriores).
+O Pages serve a branch `main` a partir da raiz. O gerador é **um arquivo só**: os dois motores vivem em IIFEs separadas dentro dele, e não há mais cópia do código em lugar nenhum.
 
 ---
 
@@ -173,7 +170,9 @@ O tamanho segue a convenção usual, pelo lado menor: 1080 dá 1920×1080, 1080�
 |---|---|
 | **PNG** | todos os templates. 2D sai em 2× do formato escolhido (até 3840×2160 no wide); 3D sai na resolução configurada |
 | **SVG** | só nos templates 2D — a mesma primitiva e a mesma ordem de pintura do canvas |
-| **WebM** | só nos templates 3D, em loop perfeito |
+| **WebM** | só nos templates 3D, em loop perfeito. Duração, fps, ciclos e o scrubber de frame ficam no card *Vídeo* |
+
+Nos templates 3D o export recorta pelo **guia de enquadramento**: o botão no card *Saída* mostra exatamente a área que vai para o arquivo, com o resto escurecido. O guia é pintado por cima da cena e nunca entra no export.
 
 ---
 
@@ -202,20 +201,6 @@ Ele dirige o `index.html` **de verdade**, dentro de um iframe — não uma cópi
 O que ele checa em cada caso: não lançar, não deixar pixel transparente, e não sair um quadro chapado de uma cor só. E fora do desenho: que `snapshot`/`restore` devolvam o estado exato e que `set`/`get` não divirjam.
 
 > A verificação do estado usa **dois valores sentinela** em vez de comparar com o estado ambiente. Uma corrupção constante contamina a própria linha de base — foi o que aconteceu na primeira versão desta checagem, que passava enquanto o bug estava injetado.
-
----
-
-## As páginas anteriores
-
-`stack-generator/index.html` e `stack-generator/stacks-3d.html` continuam no ar e são a **origem dos dois motores**: a home carrega cópias verbatim do código delas, cada uma isolada numa IIFE.
-
-Elas ainda têm coisas que a home não trouxe:
-
-- **link compartilhável** com o estado no hash da URL (2D);
-- **guia de enquadramento** e **scrubber de frame** com duração, fps e ciclos (3D);
-- controles de câmera por número, congelar, e os atalhos próprios de cada página.
-
-Isso significa que hoje o motor vive em dois lugares. Resolver é apagar as páginas antigas — depois de trazer para a home o que falta — ou passar a gerá-las a partir da mesma fonte.
 
 ---
 

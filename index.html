@@ -285,6 +285,10 @@
  *    zoomBy(d)             a roda do mouse passa a dar zoom
  *    exportSVG()           acrescenta o item no menu
  *    exportWebM(), hasVideo  idem, para vídeo
+ *    drawGuide(ctx,W,H)    pinta por cima da cena o recorte que o export
+ *                          aplica. Nunca entra no arquivo exportado
+ *    video()/setVideo(k,v) controles de duração, fps, ciclos e frame,
+ *                          num card próprio
  *    useCanvas(c)          recebe o canvas do palco, se precisar dele
  * ==================================================================== */
 
@@ -1313,17 +1317,55 @@ async function exportWebM(){
     setFormat: k => { S.expFormat = k; },
     exportPNG: () => exportPNG(),
     exportWebM: () => exportWebM(),
-    hasVideo: true
+    hasVideo: true,
+    // o guia mostra o recorte que o export ja aplica — sem ele o corte e invisivel
+    drawGuide: (ctx, W, H) => drawGuide(ctx, W, H),
+    video: () => [
+      { key:'dur',    label:'Duração', min:1, max:12,  value:S.dur,    suffix:'s' },
+      { key:'fps',    label:'FPS',     min:12, max:60, value:+S.fps,   suffix:'' },
+      { key:'cycles', label:'Ciclos',  min:1, max:4,   value:S.cycles, suffix:'' },
+      { key:'frame',  label:'Frame',   min:0, max:Math.max(1, totalFrames() - 1), value:S.frame, suffix:'' }
+    ],
+    setVideo: (k, v) => {
+      S[k] = v;
+      if (k === 'frame') S.phase = v / totalFrames() * TAU * S.cycles;   // scrub determinístico
+      needFrame();
+    }
   };
 })();
 
 /* ---------------------------- a casca ---------------------------- */
+/* Estado no hash da URL: recarregar nao perde nada e o link e compartilhavel.
+   Escrito com atraso, porque um arraste de slider dispara dezenas de eventos
+   e replaceState a cada um seria desperdicio. */
+let hashTimer = 0;
+function escreverHash(){
+  clearTimeout(hashTimer);
+  hashTimer = setTimeout(() => {
+    try {
+      const o = { e: APP.eng.id, s: APP.eng.snapshot() };
+      const txt = btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/, '');
+      history.replaceState(null, '', '#' + txt);
+    } catch (e){ /* hash e conveniencia: nunca derruba a pagina */ }
+  }, 300);
+}
+function lerHash(){
+  if (location.hash.length < 2) return false;
+  try {
+    const o = JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1)))));
+    const eng = ENGINES[o.e];
+    if (!eng || !o.s) return false;
+    APP.eng = eng;
+    eng.restore(o.s);
+    return true;
+  } catch (e){ return false; }
+}
 const $ = id => document.getElementById(id);
 const stage = $('stage');
 const sctx = stage.getContext('2d');
 ENG3D.useCanvas(stage);
 
-const APP = { eng: ENG2D, tab: 'assets', playing: true, busca: '' };
+const APP = { eng: ENG2D, tab: 'assets', playing: true, busca: '', guia: false };
 const ENGINES = { '2d': ENG2D, '3d': ENG3D };
 
 /* Reconcilia o tamanho a cada quadro em vez de confiar so no evento de
@@ -1345,7 +1387,7 @@ function resize(){
    monitor 4K devolve um terco do orcamento de cada quadro. Toda mutacao de
    estado passa por invalidate(). */
 let dirty = true;
-const invalidate = () => { dirty = true; };
+const invalidate = () => { dirty = true; escreverHash(); };
 
 let last = 0;
 function frame(now){
@@ -1357,6 +1399,7 @@ function frame(now){
     if (APP.playing && APP.eng.advance(dt)) dirty = true;
     if (dirty || cresceu){
       APP.eng.draw(sctx, stage.width, stage.height);
+      if (APP.guia && APP.eng.drawGuide) APP.eng.drawGuide(sctx, stage.width, stage.height);
       dirty = false;
     }
   } catch (e){ console.error('quadro falhou:', e); }
@@ -1531,13 +1574,33 @@ function renderEditor(){
     o.value = f.key; o.textContent = f.key; o.selected = f.key === String(eng.format());
     sel.appendChild(o);
   });
-  sel.addEventListener('change', e => { eng.setFormat(e.target.value); invalidate(); });
+  sel.addEventListener('change', e => { eng.setFormat(e.target.value); invalidate(); render(); });
   saida.appendChild(sel);
+  if (eng.drawGuide){
+    const seg = document.createElement('div');
+    seg.className = 'seg';
+    seg.style.marginTop = '10px';
+    const b2 = document.createElement('button');
+    b2.textContent = 'Guia de enquadramento';
+    b2.setAttribute('aria-pressed', String(APP.guia));
+    b2.addEventListener('click', () => { APP.guia = !APP.guia; invalidate(); render(); });
+    seg.appendChild(b2);
+    saida.appendChild(seg);
+  }
   const sub = document.createElement('div');
   sub.className = 'csub';
   sub.textContent = 'semente ' + eng.seed();
   saida.appendChild(sub);
   body.appendChild(saida);
+
+  if (eng.video){
+    const vid = card('Vídeo');
+    eng.video().forEach(ctl => slider(vid, eng, ctl, (k, v) => {
+      eng.setVideo(k, v);
+      if (k === 'frame') APP.playing = false;      // arrastar o frame pausa
+    }));
+    body.appendChild(vid);
+  }
 }
 
 /* ---------- paleta ---------- */
@@ -1595,6 +1658,12 @@ function renderMenu(){
   if (APP.eng.exportSVG) item('Exportar SVG', '', () => APP.eng.exportSVG());
   if (APP.eng.hasVideo) item('Exportar WebM', '', () => APP.eng.exportWebM());
   const d = document.createElement('div'); d.className = 'div'; m.appendChild(d);
+  item('Copiar link', '', async () => {
+    escreverHash();
+    setTimeout(async () => {
+      try { await navigator.clipboard.writeText(location.href); } catch (e){ /* sem permissao */ }
+    }, 350);
+  });
   item('Código no GitHub', '', () => window.open('https://github.com/lucasbatistaribeiro/animations', '_blank'));
 }
 
@@ -1669,6 +1738,7 @@ window.addEventListener('resize', resize);
 window.__gerador = { ENGINES, APP, render, invalidate };
 
 resize();
+lerHash();
 render();
 requestAnimationFrame(frame);
 </script>
