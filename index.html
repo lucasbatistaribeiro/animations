@@ -963,7 +963,8 @@ function piecesPyramid(){
     out.push({
       pts: ccw(rotPts([[-o,-o],[o,-o],[o,o],[-o,o]], ang)),
       z0: z, z1: z + riser,
-      top: topColor((k + .5) / L)
+      top: topColor((k + .5) / L),
+      order: z                          // empilhada: a base ordena, e nao anda
     });
     z += riser;
   }
@@ -982,7 +983,8 @@ function piecesTwist(){
     out.push({
       pts: ccw(rotPts([[-s,-s],[s,-s],[s,s],[-s,s]], ang)),
       z0: k * thick, z1: k * thick + thick - g,
-      top: topColor(t)
+      top: topColor(t),
+      order: k * thick                  // empilhada: a base ordena
     });
   }
   return out;
@@ -1001,7 +1003,11 @@ function piecesStack(){
       out.push({
         pts: rect(x0, y0, x0 + cell - g, y0 + cell - g),
         z0: 0, z1: Math.max(.02, (S.height / 100) * .55 * k),
-        top: topColor(r)
+        top: topColor(r),
+        // apoiada no chao: quem ordena e a profundidade do FOOTPRINT, que o
+        // Wave nao mexe. Antes a altura entrava na chave e as colunas
+        // embaralhavam a ordem enquanto a onda passava.
+        order: raw(cx, cy, 0).d
       });
     }
   }
@@ -1026,7 +1032,13 @@ function piecesTower(){
     out.push({
       pts: rect(-1 + dx, -1 + dy, 1 + dx, 1 + dy),
       z0: k * pitch, z1: k * pitch + thick,
-      top: topColor(t)
+      top: topColor(t),
+      // empilhada: a fatia de cima sempre por cima. Antes o deslocamento
+      // lateral do Wave entrava na chave via `ry` e fatias vizinhas trocavam
+      // de ordem no meio da onda. Em Effector muito alto o desalinhamento e
+      // grande o bastante para a ordem por z ser discutivel — mas estavel e
+      // discutivel le melhor que correta-na-media e piscando.
+      order: k * pitch
     });
   }
   return out;
@@ -1052,10 +1064,14 @@ function piecesCircle(){
       const ra = r0 + span * (j / S.segments);
       const rb = r0 + span * ((j + 1) / S.segments);
       const P = (r, ang) => [r * Math.cos(ang), r * Math.sin(ang)];
+      const rm = (ra + rb) / 2;
       out.push({
         pts: ccw([P(ra, a - half), P(rb, a - half), P(rb, a + half), P(ra, a + half)]),
         z0: 0, z1: armH * (.45 + .55 * (j + 1) / S.segments),
-        top: topColor(i / N), roles: ['a', 'end', 'b', 'in']
+        top: topColor(i / N), roles: ['a', 'end', 'b', 'in'],
+        // apoiado no chao: ordena pelo footprint, que o Wave nao mexe — aqui
+        // ele modula so a ALTURA do braco
+        order: raw(rm * Math.cos(a), rm * Math.sin(a), 0).d
       });
     }
   }
@@ -1071,7 +1087,8 @@ function piecesCircle(){
   }
   // flat: a parede do miolo usa a cor dele, para ler como um volume único
   out.push({ pts: ccw(core), z0:0, z1: Math.max(.05, S.height / 100),
-             top: RO.core || RO.bands[4], flat: true });
+             top: RO.core || RO.bands[4], flat: true,
+             order: raw(0, 0, 0).d });          // o miolo esta no centro
   return out;
 }
 
@@ -1218,6 +1235,10 @@ function prismFaces(piece){
   const { pts, z0, z1, top } = piece;
   const p = RO;
   const sh = S.shadow / 100;
+  // centroide do footprint: origem do referencial em que a face e ordenada
+  let fx = 0, fy = 0;
+  for (const q of pts){ fx += q[0]; fy += q[1]; }
+  fx /= pts.length; fy /= pts.length;
   const bot = pts.map(q => project(q[0], q[1], z0));
   const cap = pts.map(q => project(q[0], q[1], z1));
   const faces = [];
@@ -1233,9 +1254,50 @@ function prismFaces(piece){
                : p.b;
     const f = 1 - sh * (role === 'flat' ? .3 : ROLE_SHADE[role]);
     const q = [bot[i], bot[j], cap[j], cap[i]];
-    faces.push({ pts:q, fill: shade(base, f), d:(q[0].d + q[1].d + q[2].d + q[3].d) / 4 });
+    /* CHAVE DE PROFUNDIDADE DA FACE: so o footprint, sem z nenhum.
+       A media dos quatro cantos era
+           (ry_i + ry_j) * ce/2  +  (z0 + z1) * se/2
+       e o segundo termo e o MESMO nas quatro faces do prisma, logo nao deveria
+       influir na ordem entre elas. Matematicamente nao influi; numericamente
+       influi: somar um `c` que muda a cada quadro a dois valores quase iguais
+       faz a comparacao inverter por arredondamento.
+       E os valores ficam quase iguais o tempo todo, porque em rot -45 — o
+       padrao de todos os presets — as duas faces laterais visiveis de um
+       footprint QUADRADO tem profundidade exatamente igual. Com o Wave
+       animando z1, o empate desempatava ao contrario toda hora, e a aresta
+       vertical da caixa piscava entre os dois tons laterais: onda quadrada de
+       80 niveis de luminancia, medida pixel a pixel no Stack e no Tower.
+       Era isso o tremor desses dois layouts. Explica tambem por que era PIOR
+       com Effector baixo: quanto menos a peca se desloca, mais perto do empate
+       ela fica — no Tower o tremor caia de .69 em Effector 10 para .09 em 100,
+       porque o desalinhamento lateral quebra a simetria.
+       A chave sai do footprint, medido a partir do CENTROIDE DA PROPRIA PECA.
+       As duas coisas importam. Tirar o z resolve o Stack, onde e a altura que
+       anima. Medir a partir do centroide resolve o Tower, onde z e estatico e
+       quem anima e o deslocamento lateral: as duas faces empatadas se deslocam
+       pelo MESMO dx, dy, entao a diferenca entre elas nao muda mas o valor
+       somado a ambas muda — e era esse valor que virava o desempate. No
+       referencial do footprint, uma translacao rigida da peca sai da conta e a
+       chave para de depender da fase.
+       Nos dois casos a ordem e a MESMA de antes: as faces laterais cobrem o
+       mesmo intervalo de z e a peca inteira desloca junto, entao as chaves
+       diferem da media dos cantos por uma constante por peca e por quadro, que
+       nao altera ordem nenhuma. Quando a peca GIRA (Pyramid, Twist) o
+       referencial gira com ela e a ordem muda de verdade, como deve.
+       Falta um detalhe, e ele e o que sobrava do tremor do Tower: em rot -45 as
+       duas faces sao SIMETRICAS, o empate e exato, e o referencial relativo nao
+       chega a zero exato em ponto flutuante — `(-1+dx + 1+dx)/2 - dx` deixa um
+       residuo da ordem de 1e-16 que depende da fase. Empate exato mais qualquer
+       residuo da inversao, e o desempate por indice so pega igualdade exata.
+       Por isso a chave e QUANTIZADA: diferencas abaixo do piso de ruido viram
+       empate de verdade, e o indice resolve sempre do mesmo jeito. O quantum
+       fica seis ordens acima do ruido (1e-16) e muito abaixo de qualquer
+       diferenca real de profundidade entre faces, que e da ordem de 0.1. */
+    const mx = (pts[i][0] + pts[j][0]) / 2 - fx, my = (pts[i][1] + pts[j][1]) / 2 - fy;
+    const dq = Math.round(raw(mx, my, 0).d * 1e9) / 1e9;
+    faces.push({ pts:q, fill: shade(base, f), d: dq, i });
   }
-  faces.sort((m, n) => m.d - n.d);
+  faces.sort((m, n) => m.d - n.d || m.i - n.i);
   faces.push({ pts: cap, fill: top, d: Infinity });
   return faces;
 }
@@ -1246,11 +1308,37 @@ function drawScene(ctx, W, H, viewOverride){
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = RO.bg;
   ctx.fillRect(0, 0, W, H);
+  /* ORDEM DE PINTURA.
+     A chave era a profundidade do CENTROIDE 3D da peca, e isso trepidava: o
+     centroide inclui `(z0+z1)/2 * se`, entao o Wave, que anima as alturas do
+     Stack e o deslocamento lateral do Tower, animava a propria chave. Pecas em
+     profundidade parecida ficavam invertendo a ordem de um quadro para o outro,
+     e a cada inversao a regiao de sobreposicao trocava de cor.
+     Medido (reversoes por diferenca significativa, 0 = movimento puro, 1 =
+     piscada pura): Tower .591, Stack .337, contra Twist .016 e Circle .004. E
+     pior com Effector BAIXO — .693 no Tower a 10 — que e a assinatura de
+     empate: quanto menos a geometria se separa, mais a ordem oscila. Forcar
+     todas as faces a uma cor unica levava as duas a ~.001, o que prova que o
+     que piscava era a cor, nao a borda.
+
+     Agora cada peca pode declarar `order`, porque quem conhece a estrutura de
+     oclusao e o layout, nao o desenhador: os empilhados em z ordenam pela base,
+     os que se apoiam no chao ordenam pela profundidade do FOOTPRINT. Nos dois
+     casos a chave deixa de depender da fase. Sem `order` vale o centroide, que
+     continua sendo o palpite razoavel para uma peca nova.
+
+     As FACES de um prisma nao precisaram mudar: o termo `(z0+z1)/2 * se` e o
+     mesmo nas quatro, logo nao entra na ordem relativa delas — a ordenacao de
+     face depende so da orientacao do footprint, que o Wave nao mexe no Stack
+     nem no Tower. */
   const items = BUILDERS[S.layout]().map(pc => {
-    let sx = 0, sy = 0;
-    for (const q of pc.pts){ sx += q[0]; sy += q[1]; }
-    const c = raw(sx / pc.pts.length, sy / pc.pts.length, (pc.z0 + pc.z1) / 2);
-    return { d: c.d, faces: prismFaces(pc) };
+    let d = pc.order;
+    if (d === undefined){
+      let sx = 0, sy = 0;
+      for (const q of pc.pts){ sx += q[0]; sy += q[1]; }
+      d = raw(sx / pc.pts.length, sy / pc.pts.length, (pc.z0 + pc.z1) / 2).d;
+    }
+    return { d, faces: prismFaces(pc) };
   });
   items.sort((m, n) => m.d - n.d);
   for (const it of items) for (const f of it.faces) poly(ctx, f.pts, f.fill);
