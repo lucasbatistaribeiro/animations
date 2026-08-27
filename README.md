@@ -10,7 +10,7 @@ A home **é** o gerador: canvas em tela cheia, painel flutuante à esquerda e ba
 |---|---|
 | **Assets** | busca e os templates, agrupados em `2d` e `3d`. Cada miniatura é desenhada pelo próprio motor, então mostra o template de verdade |
 | **Editor** | os controles do template ativo, em cards: forma, câmera (no 3D), movimento e saída |
-| **Barra** | o hambúrguer esconde e mostra o painel; play/pause; paleta; e **Exportar**, que abre o menu de ações |
+| **Barra** | o hambúrguer esconde e mostra o painel; play/pause; paleta; e **Exportar**, que abre o menu de ações e lista os atalhos |
 
 Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só os downloads exigem `http(s)`.
 
@@ -21,13 +21,15 @@ Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só os 
 | escolher | aba **Assets**, clique numa capa. O painel **fica na aba**, para você percorrer vários templates seguidos; o Editor está a uma aba de distância quando a escolha estiver feita |
 | ajustar | aba **Editor**: *Forma*, *Câmera* (só nos 3D), *Movimento* e *Saída* |
 | orbitar | nos templates 3D, arraste no canvas; a roda do mouse dá zoom |
-| paleta | botão das bolinhas na barra: troca a paleta e mostra a rampa de tons |
+| paleta | botão das bolinhas na barra: troca a paleta e mostra a rampa de tons. A bolinha na rampa marca o acento; clicar num tom troca |
 | exportar | botão **Exportar**: abre o menu com PNG, SVG (2D), WebM (3D), nova semente e copiar link |
 | esconder o painel | o botão do hambúrguer. O enquadramento do export se recentra junto |
 
 | link | o estado vai no hash da URL: recarregar não perde nada e o link é compartilhável. **Copiar link** está no menu |
 
-`espaço` play/pause · `N` nova semente · `E` exporta PNG
+`espaço` play/pause · `N` nova semente · `E` exporta PNG · `H` esconde o painel · `/` busca · `esc` fecha o que estiver aberto
+
+Os mesmos atalhos estão no rodapé do menu **Exportar** — descobrir um atalho não depende de ler isto aqui.
 
 ---
 
@@ -172,6 +174,26 @@ O tamanho segue a convenção usual, pelo lado menor: 1080 dá 1920×1080, 1080�
 | **WebM** | só nos templates 3D, em loop perfeito. Duração, fps, ciclos e o scrubber de frame ficam no card *Vídeo* |
 
 Nos templates 3D o export recorta pelo **guia de enquadramento**: o botão no card *Saída* mostra exatamente a área que vai para o arquivo, com o resto escurecido. O guia é pintado por cima da cena e nunca entra no export.
+
+---
+
+## A casca
+
+Escura, mas em **cinza médio** e com **elevação**: painel `#262626`, card `#333`, campo `#404040` — degraus de uma mesma rampa, em vez de três quase-pretos separados só pela borda. Cinza puro, sem viés de matiz: a única cor da tela é a arte gerada, e o acento da UI é claro (`#f0f0f0`), não colorido. Painel, barra e popovers são translúcidos com desfoque — a arte atravessa a casca, e a opacidade é 92% porque abaixo disso, com paleta clara atrás, o texto secundário cai de 4.5:1.
+
+O movimento é do sistema, não de cada componente: dois *easings* e três durações em variáveis CSS, usados em tudo. O que ele faz:
+
+| | |
+|---|---|
+| **tinta das abas** | desliza de uma aba para a outra, em vez de piscar de lugar |
+| **entrada em cascata** | os cards sobem em sequência — mas **só quando o conteúdo troca de verdade** (aba, template, motor). Um clique num toggle refaz o mesmo conteúdo: ali a cascata seria uma piscada |
+| **trilha do slider** | pintada até o valor, e o número acende enquanto se arrasta: o olho está no canvas, e o valor se anuncia sem exigir um segundo olhar |
+| **popovers** | saíram de `display:none` para poder animar — e, de quebra, dá para medir a caixa e posicionar **antes** de mostrar |
+| **aviso** | copiar link, sortear semente e gravar WebM acontecem fora da tela e não davam sinal nenhum. O aviso é o recibo |
+
+Refazer o painel não custa mais a rolagem nem o foco do teclado: cada controle carrega uma âncora (`data-fk`) e o `render` devolve os dois quando o conteúdo é o mesmo. E há **anel de foco** em tudo — antes dava para percorrer a UI inteira no teclado sem ver onde se estava.
+
+`prefers-reduced-motion` desliga todas as transições e animações. Movimento aqui é acabamento, nunca requisito.
 
 ---
 
