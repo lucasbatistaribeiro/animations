@@ -36,8 +36,6 @@ Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só os 
 .
 ├── index.html                    # o gerador — a home
 ├── test.html                     # teste de fumaça
-├── html.html                     # demo antigo: barra de progresso em CSS
-├── style.css                     # css do demo antigo
 ├── LICENSE                       # MIT
 └── README.md
 ```
