@@ -395,6 +395,13 @@ const MODE_LABELS = {
   off:       'Estático'
 };
 
+/* Modos em que o padrao NAO se deforma com a fase: a fila e rigida e apenas
+   translada, entao a trelica de bordas e a mesma em todo quadro. E a condicao
+   para poder arredondar para pixel inteiro sem que o arredondamento mude de um
+   quadro para o outro — ver o bloco de doutrina em drawScene. */
+const RIGIDO = { run: 1, march: 1, off: 1 };
+const rigido = () => S.mode in RIGIDO;
+
 /* faixas padrao dos sliders, para os controles que o layout nao redefine */
 const DEFAULT_RANGES = { count:[2,24], radius:[20,300], decay:[40,160], step:[-20,60],
                          start:[-40,130], angle:[-180,180], origin:[0,100] };
@@ -505,7 +512,9 @@ function barList(W, H){
       const duty = clamp(duty0 * Math.pow(fall, u) * jit(u), .01, .99);
       // piso de meio pixel: com contagem alta e progressão forte a cauda
       // ficaria sub-pixel e o quadro pareceria vazio
-      return { x: -L / 2 + base * u, w: Math.max(base * duty, .6), fill: cor(Math.round(u)) };
+      // `off` 0: em Caindo a geometria se deforma a cada quadro, nao ha
+      // deslocamento rigido a separar — drawScene desenha em subpixel puro.
+      return { x: -L / 2 + base * u, w: Math.max(base * duty, .6), off: 0, fill: cor(Math.round(u)) };
     };
     const out = [bar(0)];                             // o apoio
     for (let i = 0; i < n; i++) out.push(bar(i + frac));
@@ -532,14 +541,21 @@ function barList(W, H){
   const scale = L / period;            // um período preenche a diagonal
   const periodPx = period * scale;
   const march = S.mode === 'march' ? (p / TAU * periodPx) % periodPx : 0;
+  // O deslocamento e partido em inteiro + fracao. O INTEIRO entra na posicao:
+  // arredondar (x + inteiro) da o mesmo que arredondar x e somar o inteiro, e
+  // por isso a trelica continua congelada de um quadro para o outro. A FRACAO
+  // viaja em `off` e e somada no desenho, DEPOIS do arredondamento — e o que
+  // deixa a fila andar em subpixel sem deformar. Ver drawScene.
+  const marchI = Math.floor(march), marchF = march - marchI;
 
   const out = [];
-  let x = -L / 2 - periodPx + march;   // começa um período atrás da borda
+  let x = -L / 2 - periodPx + marchI;  // começa um período atrás da borda
   let k = 0;
   while (x < L / 2){
     const c = cells[k % n];
     const w = c.w * scale;
-    if (x + w > -L / 2) out.push({ x, w: Math.max(w * c.duty, .6), fill: cor(k) });
+    // a folga de 1px acomoda o `marchF` que sera somado no desenho
+    if (x + w > -L / 2 - 1) out.push({ x, w: Math.max(w * c.duty, .6), off: marchF, fill: cor(k) });
     x += w;
     k++;
   }
@@ -575,11 +591,13 @@ function cadenceList(W, H){
     const w = clamp(duty * pulse * (1 + (j.o) * vary), .05, .95) * cell;
     const m = 1 + Math.round(spread * 6 * r);            // voltas inteiras por ciclo
     const off = S.mode === 'run' ? (sign * (p / TAU) * m * cell) % cell : 0;
+    // mesmo corte do Barcode: o inteiro vai para a trelica, a fracao para `off`
+    const offI = Math.floor(off), offF = off - offI;
     const y0 = -across / 2 + across * r / rows;
     const y1 = -across / 2 + across * (r + 1) / rows;
     const fill = S.multi ? pal().bands[r % pal().bands.length] : pal().ink;
     for (let i = -1; i <= nb; i++)
-      out.push({ x: -along / 2 + i * cell + off, w, y0, y1, fill });
+      out.push({ x: -along / 2 + i * cell + offI, w, off: offF, y0, y1, fill });
   }
   return out;
 }
@@ -602,27 +620,52 @@ function drawScene(ctx, W, H){
   // Sem isso a cobertura parcial mistura tinta e fundo e deixa um fio claro na
   // divisa — o que parece um stroke, mas e antialiasing.
   //
-  // A LARGURA da barra e arredondada sozinha, e nao como round(x+w)-round(x):
-  // essa diferenca depende da parte fracionaria de x, entao a barra mudava de
-  // espessura sozinha enquanto a fila rastejava — a linha inteira piscava.
-  // Barras vizinhas nao se encostam (ha papel entre elas), entao arredondar a
-  // largura nao abre fresta. Ja as LINHAS do Cadence se encostam, e por isso
-  // as bordas horizontais continuam arredondadas aos pares.
+  // Mas so se pode arredondar o que NAO DEPENDE DA FASE. Arredondar a posicao
+  // animada de cada retangulo, um a um, era a causa do tremor: como `cell` e
+  // fracionario, cada barra cruza o limiar de .5 num quadro diferente, entao a
+  // fila deixava de transladar como corpo rigido — os vaos entre barras
+  // oscilavam 1px de quadro a quadro (medido: metade das barras pulando por
+  // quadro). E arredondar a LARGURA a parte fazia a barra engordar e afinar
+  // sozinha, o que na cauda fina do Barcode e 20% de espessura.
+  //
+  // A regra:
+  //   - a TRELICA (x, w) e arredondada AOS PARES — a largura sai da diferenca
+  //     entre as duas bordas arredondadas, nunca por conta propria. A trelica
+  //     nao depende da fase (a geometria ja mandou o deslocamento inteiro
+  //     embutido em x), logo o arredondamento e identico em todo quadro:
+  //     larguras e vaos congelam;
+  //   - o DESLOCAMENTO fracionario da fase, `off`, e somado DEPOIS. Todas as
+  //     bordas da mesma fila recebem o mesmo `off`, entao o antialiasing e
+  //     uniforme e a fila anda em subpixel sem trepidar. Parada, ou com `off`
+  //     inteiro, ela volta a cair em pixel cheio e as bordas ficam duras;
+  //   - nos modos que DEFORMAM a geometria a cada quadro (pulse, accordion,
+  //     fall) nao existe trelica estavel, entao nao se arredonda nada: subpixel
+  //     puro. Barras vizinhas nao se encostam no eixo em que correm, entao isso
+  //     nao abre fresta — e a cauda sub-pixel passa a esmaecer em vez de
+  //     piscar entre 0 e 1px.
+  // As LINHAS do Cadence se encostam no eixo TRANSVERSAL, e la as bordas
+  // continuam sempre arredondadas aos pares: esse eixo e estatico.
   const axial = S.layout === 'cadence' || S.layout === 'bars';
+  const snap = axial && rigido();
   const R = v => Math.round(v);
-  const Rw = v => Math.max(1, Math.round(v));
+  const par = (a, b) => { const i = R(a); return [i, Math.max(1, R(b) - i)]; };
+  const cru = (a, b) => [a, b - a];
+  const aoLongo = snap ? par : cru;     // eixo em que a fila corre
   ctx.save();
   ctx.translate(axial ? R(W / 2) : W / 2, axial ? R(H / 2) : H / 2);
   ctx.rotate(spinAngle() * DEG);
   if (S.layout === 'cadence'){
     for (const b of cadenceList(W, H)){
+      const [x, w] = aoLongo(b.x, b.x + b.w);
+      const [y, h] = par(b.y0, b.y1);
       ctx.fillStyle = b.fill;
-      ctx.fillRect(R(b.x), R(b.y0), Rw(b.w), Math.max(1, R(b.y1) - R(b.y0)));
+      ctx.fillRect(x + b.off, y, w, h);
     }
   } else if (S.layout === 'bars'){
     for (const b of barList(W, H)){
+      const [x, w] = aoLongo(b.x, b.x + b.w);
       ctx.fillStyle = b.fill;
-      ctx.fillRect(R(b.x), -M / 2, Rw(b.w), M);
+      ctx.fillRect(x + b.off, -M / 2, w, M);
     }
   } else {
     // calota: percorre o arco de baixo, de uma ponta da corda a outra, e fecha
@@ -670,17 +713,26 @@ function exportSVG(){
     '<rect width="' + W + '" height="' + H + '" fill="' + pal().bg + '"/>',
     '<g transform="translate(' + n(W / 2) + ' ' + n(H / 2) + ') rotate(' + spinAngle() + ')">'
   ];
-  // mesma primitiva e mesma ordem de pintura do canvas
+  // mesma primitiva, mesma ordem de pintura e MESMA DOUTRINA DE
+  // ARREDONDAMENTO do canvas — se divergirem, o vetor sai diferente da tela
+  const snap = (S.layout === 'cadence' || S.layout === 'bars') && rigido();
   const R = v => Math.round(v);
-  const Rw = v => Math.max(1, Math.round(v));
+  const par = (a, b) => { const i = R(a); return [i, Math.max(1, R(b) - i)]; };
+  const cru = (a, b) => [a, b - a];
+  const aoLongo = snap ? par : cru;
   if (S.layout === 'cadence'){
-    for (const b of cadenceList(W, H))
-      out.push('<rect x="' + R(b.x) + '" y="' + R(b.y0) + '" width="' + Rw(b.w) +
-               '" height="' + Math.max(1, R(b.y1) - R(b.y0)) + '" fill="' + b.fill + '"/>');
+    for (const b of cadenceList(W, H)){
+      const [x, w] = aoLongo(b.x, b.x + b.w);
+      const [y, h] = par(b.y0, b.y1);
+      out.push('<rect x="' + n(x + b.off) + '" y="' + y + '" width="' + n(w) +
+               '" height="' + h + '" fill="' + b.fill + '"/>');
+    }
   } else if (S.layout === 'bars'){
-    for (const b of barList(W, H))
-      out.push('<rect x="' + R(b.x) + '" y="' + n(-M / 2) + '" width="' + Rw(b.w) +
+    for (const b of barList(W, H)){
+      const [x, w] = aoLongo(b.x, b.x + b.w);
+      out.push('<rect x="' + n(x + b.off) + '" y="' + n(-M / 2) + '" width="' + n(w) +
                '" height="' + M + '" fill="' + b.fill + '"/>');
+    }
   } else {
     for (const pc of arcList(W, H)){
       const t0 = Math.asin(clamp(pc.c, -1, 1));
@@ -1389,6 +1441,22 @@ function resize(){
   const h = Math.max(1, Math.round((window.innerHeight || document.documentElement.clientHeight) * dpr));
   if (stage.width === w && stage.height === h) return false;
   stage.width = w; stage.height = h;
+  // O canvas e um elemento SUBSTITUIDO: com o tamanho declarado so nos
+  // atributos, `inset:0` NAO estica a caixa — para width/height em `auto` o
+  // tamanho usado e o intrinseco, e a equacao super-restringida e resolvida
+  // ignorando right/bottom. Ou seja: a caixa ficava do tamanho do ATRIBUTO,
+  // em px de CSS. Num monitor dpr>1 isso deixava a tela `dpr` vezes maior que
+  // a viewport, ancorada no topo-esquerdo — via-se so 1/dpr da composicao
+  // (medido: 70% da largura em dpr 1.5, 50% em dpr 2), e reescalada, o que
+  // borra a borda animada e faz todo o trabalho de encaixar em pixel inteiro
+  // ser jogado fora na reamostragem. Em dpr 1 o codigo acertava por acidente,
+  // que e por que isso passou tanto tempo em pe.
+  //
+  // Dividir pelo MESMO dpr usado no backing store da 1 px de canvas = 1 px
+  // fisico, exato. (Com dpr > 2 o teto ainda reamostra: e uma escolha de
+  // desempenho, nao um descuido.)
+  stage.style.width  = w / dpr + 'px';
+  stage.style.height = h / dpr + 'px';
   return true;
 }
 
