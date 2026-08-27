@@ -18,7 +18,7 @@ Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só os 
 
 | | |
 |---|---|
-| escolher | aba **Assets**, clique numa capa. O painel pula para o Editor com os controles daquele template |
+| escolher | aba **Assets**, clique numa capa. O painel **fica na aba**, para você percorrer vários templates seguidos; o Editor está a uma aba de distância quando a escolha estiver feita |
 | ajustar | aba **Editor**: *Forma*, *Câmera* (só nos 3D), *Movimento* e *Saída* |
 | orbitar | nos templates 3D, arraste no canvas; a roda do mouse dá zoom |
 | paleta | botão das bolinhas na barra: troca a paleta e mostra a rampa de tons |

@@ -1456,9 +1456,11 @@ function renderAssets(){
       b.setAttribute('aria-pressed', String(APP.eng === eng && eng.layout() === l.key));
       b.appendChild(thumbCanvas(eng, l.key));
       b.addEventListener('click', () => {
+        // fica na aba: quem esta escolhendo costuma clicar em varios seguidos.
+        // O Editor esta a uma aba de distancia quando a escolha estiver feita.
+        const jaAtivo = APP.eng === eng && eng.layout() === l.key;
         APP.eng = eng;
-        eng.setLayout(l.key);
-        APP.tab = 'editor';
+        if (!jaAtivo) eng.setLayout(l.key);   // reclicar nao reaplica o preset
         invalidate();
         render();
       });
