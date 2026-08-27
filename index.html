@@ -1092,29 +1092,72 @@ const project = (x, y, z) => {
   return { x: view.cx + r.x * view.scale, y: view.cy + r.y * view.scale, d: r.d };
 };
 
-/* Enquadramento estável: bbox projetada amostrada ao longo do ciclo (e do giro,
-   quando Rotate está ligado), para a moldura não "respirar" durante a animação. */
+/* ---------- enquadramento estavel ---------- *
+ * Duas camadas de cache, porque as duas coisas mudam em ritmos muito
+ * diferentes:
+ *
+ *   NUVEM     amostra a geometria ao longo do ciclo e guarda cada ponto como
+ *             o par (r, z), com r = hypot(x, y). Depende so da FORMA — layout,
+ *             parametros, fase — e nunca da camera. Reamostrada apenas quando
+ *             a forma muda.
+ *   ENVELOPE  o retangulo que a nuvem ocupa na tela. Sai da nuvem mais a
+ *             ELEVACAO, num laco sobre escalares: nao reconstroi geometria.
+ *
+ * Antes as duas eram a mesma funcao, e como `orbit` a invalidava, cada
+ * pointermove reconstruia a geometria cinco vezes e reprojetava tudo em quatro
+ * giros. Medido no Stack 22 com Rotate: 7.6ms num quadro limpo contra 24.7ms
+ * arrastando — 40fps na interacao em que a resposta mais se sente.
+ *
+ * POR QUE (r, z). A projecao manda `rx = x*ca - y*sa` para a horizontal da
+ * tela, e ao longo de uma volta inteira rx varre exatamente [-r, +r]. Na
+ * vertical, `ry*se - z*ce` varre [-r*se - z*ce, +r*se - z*ce]. Nenhum dos dois
+ * depende de S.rot: o envelope e a silhueta do solido de revolucao da nuvem.
+ * Duas consequencias:
+ *   - girar nao reescala mais nada. Antes o ajuste seguia o bbox PROJETADO,
+ *     que muda com o angulo, entao a cena inchava e murchava enquanto se
+ *     orbitava — medido: 24.7% de variacao de largura no Tower, 14.8% na
+ *     Pyramid, 10.5% no Twist, numa volta;
+ *   - a amostragem de giros se aposenta. Ela colhia 0/90/180/270 — multiplos
+ *     de 90 — e num footprint quadrado os quatro angulos sao equivalentes por
+ *     simetria, de modo que as quatro amostras eram a mesma e o extremo em 45
+ *     ficava de fora. Agora nao se amostra angulo nenhum: a volta e coberta
+ *     por construcao, e o WebM, que varre um giro completo, tambem.
+ *
+ * O PRECO, que e real: o envelope e a uniao de todos os angulos, logo e mais
+ * largo que a silhueta de qualquer angulo isolado. A cena passa a caber no
+ * quadro com menos justeza. Em troca, ela nao pulsa.                        */
+let NUVEM = new Float64Array(0);                  // pares (r, z)
 let FRAME = { minx:-1, maxx:1, miny:-1, maxy:1 };
 
-function computeFrame(){
-  const savedP = S.phase, savedR = S.rot;
+function buildNuvem(){
+  const savedP = S.phase;
   const phases = [0, .2, .4, .6, .8].map(u => u * TAU * S.cycles);
-  const spins = S.rotate ? [0, .25, .5, .75].map(u => u * TAU) : [0];
-  let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
+  const out = [];
   for (const dp of phases){
     S.phase = savedP + dp;
-    const pieces = BUILDERS[S.layout]();
-    for (const ds of spins){
-      S.rot = savedR + ds;
-      for (const p of pieces) for (const q of p.pts) for (const z of [p.z0, p.z1]){
-        const r = raw(q[0], q[1], z);
-        if (r.x < minx) minx = r.x; if (r.x > maxx) maxx = r.x;
-        if (r.y < miny) miny = r.y; if (r.y > maxy) maxy = r.y;
+    for (const p of BUILDERS[S.layout]())
+      for (const q of p.pts){
+        const r = Math.sqrt(q[0] * q[0] + q[1] * q[1]);
+        out.push(r, p.z0, r, p.z1);               // as duas tampas do prisma
       }
-    }
   }
-  S.phase = savedP; S.rot = savedR;
-  FRAME = { minx, maxx, miny, maxy };
+  S.phase = savedP;
+  NUVEM = Float64Array.from(out);
+}
+
+function buildEnv(){
+  const se = Math.sin(S.elev * DEG), ce = Math.cos(S.elev * DEG);
+  let R = 0, miny = 1e9, maxy = -1e9;
+  for (let i = 0; i < NUVEM.length; i += 2){
+    const r = NUVEM[i], z = NUVEM[i + 1];
+    if (r > R) R = r;
+    const alto = r * se - z * ce;                 // topo do circulo revolucionado
+    const baixo = -r * se - z * ce;               // e a base dele
+    if (alto > maxy) maxy = alto;
+    if (baixo < miny) miny = baixo;
+  }
+  FRAME = NUVEM.length ? { minx:-R, maxx:R, miny, maxy }
+                       : { minx:-1, maxx:1, miny:-1, maxy:1 };
 }
 
 /* view da tela: enquadramento estável + zoom + pan (pan em fração da largura) */
@@ -1304,11 +1347,26 @@ async function exportWebM(){
   download(URL.createObjectURL(blob), `stacks3d-${S.layout}-${S.seed}-${w}x${h}.webm`, true);
 }
 
-  /* computeFrame reamostra a geometria em varias fases e giros — caro demais
-     para rodar a cada evento de slider. Marca-se sujo e recalcula-se no maximo
-     uma vez por quadro, logo antes de desenhar. */
-  let frameDirty = true;
-  const needFrame = () => { frameDirty = true; };
+  /* Reamostrar a nuvem e caro; refazer o envelope a partir dela e um laco
+     sobre escalares. Por isso sao dois sinais, nao um: marca-se sujo e
+     recalcula-se no maximo uma vez por quadro, logo antes de desenhar.
+
+     Quem muda a FORMA obriga as duas coisas. Quem muda so a camera ou a cor
+     refaz apenas o envelope. A classificacao vive aqui dentro, e nao na mao de
+     quem chama, porque a casca nao sabe — nem deve saber — o que e forma e o
+     que e camera neste motor: ela so repassa a chave do controle. */
+  const CAMPOS_FORMA = new Set(['count','segments','effector','lobes','height',
+                                'inner','gap','wave','phase','cycles','frame','seed']);
+  let nuvemSuja = true, envSujo = true;
+  const needFrame = () => { nuvemSuja = true; envSujo = true; };   // a forma mudou
+  const needEnv   = () => { envSujo = true; };                     // so a camera
+  const marcar = k => (CAMPOS_FORMA.has(k) ? needFrame : needEnv)();
+  /* Chamado antes de todo desenho, inclusive os de export: sem isso um export
+     disparado logo depois de mudar a forma sairia com o enquadramento velho. */
+  const garantirFrame = () => {
+    if (nuvemSuja){ buildNuvem(); nuvemSuja = false; envSujo = true; }
+    if (envSujo){ buildEnv(); envSujo = false; }
+  };
 
   /* Espaco reservado a esquerda para o painel flutuante. O motor nao tem como
      saber se o painel esta aberto — quem sabe e a casca, entao ela avisa. Sem
@@ -1326,7 +1384,7 @@ async function exportWebM(){
     layouts: () => Object.entries(LAYOUTS).map(([k, l]) => ({ key:k, name:l.name })),
     layout: () => S.layout,
     setLayout: k => { S.layout = k; Object.assign(S, PRESETS[k]); needFrame(); },
-    draw: (ctx, W, H) => { if (frameDirty){ computeFrame(); frameDirty = false; } drawScene(ctx, W, H, null); },
+    draw: (ctx, W, H) => { garantirFrame(); drawScene(ctx, W, H, null); },
     controls(){
       const L = LAYOUTS[S.layout], out = [];
       if (L.uses.includes('count'))
@@ -1351,14 +1409,16 @@ async function exportWebM(){
       { key:'mono',   label:'Monocromático', value:S.mono },
       { key:'bands',  label:'Tampas em faixas', value:S.bands }
     ],
-    set: (k, v) => { S[k] = v; needFrame(); },
+    set: (k, v) => { S[k] = v; marcar(k); },
     get: k => S[k],
-    toggle: k => { S[k] = !S[k]; needFrame(); },
+    toggle: k => { S[k] = !S[k]; marcar(k); },
     palettes: () => PALETTES.map((p, i) => ({ key:i, name:p.name, bg:p.bg, ink:p.top, bands:p.bands })),
     palette: () => S.palette,
     setPalette: k => { S.palette = +k; },
     seed: () => S.seed,
-    reseed: () => { S.seed = newSeed(); },
+    // a semente entra na geometria — o miolo do Circle e sorteado dela — entao
+    // sem isto a nuvem amostrada fica velha
+    reseed: () => { S.seed = newSeed(); needFrame(); },
     // devolve se a cena mudou: sem Rotate nem Wave nada anda
     advance: dt => {
       if (!S.rotate && !S.wave) return false;
@@ -1371,13 +1431,16 @@ async function exportWebM(){
     restore: o => { Object.assign(S, o); needFrame(); },
     accent: () => PALETTES[S.palette].top,
     setAccent: c => { PALETTES[S.palette].top = c; },
-    orbit: (dx, dy) => { S.rot += dx * .006; S.elev = clamp(S.elev - dy * .18, 6, 90); needFrame(); },
+    // o envelope e invariante ao giro, entao arrastar na horizontal nao
+    // invalida nada; so a elevacao move o envelope, e agora sem reconstruir
+    // geometria nenhuma
+    orbit: (dx, dy) => { S.rot += dx * .006; S.elev = clamp(S.elev - dy * .18, 6, 90); needEnv(); },
     zoomBy: d => { S.zoom = clamp(S.zoom - d * .06, 30, 400); },
     formats: () => Object.entries(EXP_ASPECT).map(([k, a]) => ({ key:k, a })),
     format: () => S.expFormat,
     setFormat: k => { S.expFormat = k; },
-    exportPNG: () => exportPNG(),
-    exportWebM: () => exportWebM(),
+    exportPNG: () => { garantirFrame(); exportPNG(); },
+    exportWebM: () => { garantirFrame(); exportWebM(); },
     hasVideo: true,
     // o guia mostra o recorte que o export ja aplica — sem ele o corte e invisivel
     drawGuide: (ctx, W, H) => drawGuide(ctx, W, H),
@@ -1391,7 +1454,7 @@ async function exportWebM(){
     setVideo: (k, v) => {
       S[k] = v;
       if (k === 'frame') S.phase = v / totalFrames() * TAU * S.cycles;   // scrub determinístico
-      needFrame();
+      marcar(k);
     }
   };
 })();
