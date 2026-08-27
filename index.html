@@ -14,8 +14,7 @@
     --txt:#f2f2f3;
     --dim:#8b8b90;
     --accent:#2f7bff;
-    --lime:#ccff00;
-  }
+    }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0}
   body{
@@ -670,9 +669,18 @@ function exportSVG(){
     setPalette: k => { S.palette = k; },
     seed: () => S.seed,
     reseed: () => { S.seed = newSeed(); JIT = jitters(); },
-    advance: dt => { S.phase += dt / 1000 * (S.speed / 100) * 1.6;
-                     if (S.mode === 'spin' && S.layout !== 'bars')
-                       S.angle = ((S.angle + dt / 1000 * (S.speed / 100) * 24 + 180) % 360) - 180; },
+    // devolve se a cena mudou: em 'off' nada anda e o quadro pode ser pulado
+    advance: dt => {
+      if (S.mode === 'off') return false;
+      S.phase += dt / 1000 * (S.speed / 100) * 1.6;
+      if (S.mode === 'spin' && S.layout !== 'bars')
+        S.angle = ((S.angle + dt / 1000 * (S.speed / 100) * 24 + 180) % 360) - 180;
+      return true;
+    },
+    snapshot: () => Object.assign({}, S),
+    restore: o => Object.assign(S, o),
+    accent: () => PALETTES[S.palette].ink,
+    setAccent: c => { PALETTES[S.palette].ink = c; },
     formats: () => Object.entries(FORMATS).map(([k, f]) => ({ key:k, a:f.a })),
     format: () => S.format,
     setFormat: k => { S.format = k; },
@@ -1172,6 +1180,12 @@ async function exportWebM(){
   download(URL.createObjectURL(blob), `stacks3d-${S.layout}-${S.seed}-${w}x${h}.webm`, true);
 }
 
+  /* computeFrame reamostra a geometria em varias fases e giros — caro demais
+     para rodar a cada evento de slider. Marca-se sujo e recalcula-se no maximo
+     uma vez por quadro, logo antes de desenhar. */
+  let frameDirty = true;
+  const needFrame = () => { frameDirty = true; };
+
   const RANGES = {
     segments:[1,5], effector:[0,100], lobes:[1,12], height:[5,160], inner:[5,70], gap:[0,70]
   };
@@ -1182,8 +1196,8 @@ async function exportWebM(){
     useCanvas: c => { canvas = c; },
     layouts: () => Object.entries(LAYOUTS).map(([k, l]) => ({ key:k, name:l.name })),
     layout: () => S.layout,
-    setLayout: k => { S.layout = k; Object.assign(S, PRESETS[k]); computeFrame(); },
-    draw: (ctx, W, H) => drawScene(ctx, W, H, null),
+    setLayout: k => { S.layout = k; Object.assign(S, PRESETS[k]); needFrame(); },
+    draw: (ctx, W, H) => { if (frameDirty){ computeFrame(); frameDirty = false; } drawScene(ctx, W, H, null); },
     controls(){
       const L = LAYOUTS[S.layout], out = [];
       if (L.uses.includes('count'))
@@ -1208,20 +1222,27 @@ async function exportWebM(){
       { key:'mono',   label:'Monocromático', value:S.mono },
       { key:'bands',  label:'Tampas em faixas', value:S.bands }
     ],
-    set: (k, v) => { S[k] = v; computeFrame(); },
+    set: (k, v) => { S[k] = v; needFrame(); },
     get: k => S[k],
-    toggle: k => { S[k] = !S[k]; computeFrame(); },
+    toggle: k => { S[k] = !S[k]; needFrame(); },
     palettes: () => PALETTES.map((p, i) => ({ key:i, name:p.name, bg:p.bg, ink:p.top, bands:p.bands })),
     palette: () => S.palette,
     setPalette: k => { S.palette = +k; },
     seed: () => S.seed,
     reseed: () => { S.seed = newSeed(); },
+    // devolve se a cena mudou: sem Rotate nem Wave nada anda
     advance: dt => {
+      if (!S.rotate && !S.wave) return false;
       const sp = S.speed / 100;
       if (S.rotate) S.rot += dt / 1000 * sp * .7;
       if (S.wave) S.phase += dt / 1000 * sp * 1.6;
+      return true;
     },
-    orbit: (dx, dy) => { S.rot += dx * .006; S.elev = clamp(S.elev - dy * .18, 6, 90); computeFrame(); },
+    snapshot: () => Object.assign({}, S),
+    restore: o => { Object.assign(S, o); needFrame(); },
+    accent: () => PALETTES[S.palette].top,
+    setAccent: c => { PALETTES[S.palette].top = c; },
+    orbit: (dx, dy) => { S.rot += dx * .006; S.elev = clamp(S.elev - dy * .18, 6, 90); needFrame(); },
     zoomBy: d => { S.zoom = clamp(S.zoom - d * .06, 30, 400); },
     formats: () => Object.entries(EXP_ASPECT).map(([k, a]) => ({ key:k, a })),
     format: () => S.expFormat,
@@ -1243,33 +1264,60 @@ const ENGINES = { '2d': ENG2D, '3d': ENG3D };
 
 /* Reconcilia o tamanho a cada quadro em vez de confiar so no evento de
    resize: se a pagina abre oculta ou sem layout, innerWidth vem 0, o canvas
-   fica 0x0 e nada mais o conserta. Assim ele se cura sozinho. */
+   fica 0x0 e nada mais o conserta. Assim ele se cura sozinho.
+   Devolve true quando o tamanho mudou — redimensionar limpa o canvas, entao
+   obriga a repintar. */
 function resize(){
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = Math.max(1, Math.round((window.innerWidth || document.documentElement.clientWidth) * dpr));
   const h = Math.max(1, Math.round((window.innerHeight || document.documentElement.clientHeight) * dpr));
-  if (stage.width !== w || stage.height !== h){ stage.width = w; stage.height = h; }
+  if (stage.width === w && stage.height === h) return false;
+  stage.width = w; stage.height = h;
+  return true;
 }
+
+/* So se desenha quando algo muda. Parado, ou com um template estatico, o
+   quadro identico deixa de ser repintado 60 vezes por segundo — o que num
+   monitor 4K devolve um terco do orcamento de cada quadro. Toda mutacao de
+   estado passa por invalidate(). */
+let dirty = true;
+const invalidate = () => { dirty = true; };
 
 let last = 0;
 function frame(now){
   requestAnimationFrame(frame);
-  resize();
+  const cresceu = resize();
   const dt = last ? Math.min(now - last, 100) : 16;
   last = now;
   try {
-    if (APP.playing) APP.eng.advance(dt);
-    APP.eng.draw(sctx, stage.width, stage.height);
+    if (APP.playing && APP.eng.advance(dt)) dirty = true;
+    if (dirty || cresceu){
+      APP.eng.draw(sctx, stage.width, stage.height);
+      dirty = false;
+    }
   } catch (e){ console.error('quadro falhou:', e); }
 }
 
-/* ---------- miniaturas: cada template desenhado pelo proprio motor ---------- */
-function thumbFor(eng, key, cv){
-  const antes = eng.layout();
+/* ---------- miniaturas ---------- *
+ * Desenhadas uma vez por (motor, template, paleta) e guardadas: a busca so
+ * filtra, entao redesenhar tudo a cada tecla era trabalho jogado fora.
+ *
+ * O estado do motor e salvo e restaurado em volta do desenho. Antes daqui se
+ * voltava com setLayout, que reaplica o PRESET — e isso apagava os ajustes
+ * que o usuario tivesse feito no template aberto.                          */
+const THUMBS = new Map();
+function thumbCanvas(eng, key){
+  const chave = eng.id + '/' + key + '/' + eng.palette() + '/' + eng.accent();
+  let cv = THUMBS.get(chave);
+  if (cv) return cv;
+  cv = document.createElement('canvas');
+  cv.width = 132; cv.height = 132;
+  const estado = eng.snapshot();
   eng.setLayout(key);
-  const c = cv.getContext('2d');
-  try { eng.draw(c, cv.width, cv.height); } catch (e){ /* ignora */ }
-  eng.setLayout(antes);
+  try { eng.draw(cv.getContext('2d'), cv.width, cv.height); } catch (e){ /* ignora */ }
+  eng.restore(estado);
+  THUMBS.set(chave, cv);
+  return cv;
 }
 
 /* ---------- aba Assets ---------- */
@@ -1299,17 +1347,15 @@ function renderAssets(){
       b.className = 'thumb';
       b.title = l.name;
       b.setAttribute('aria-pressed', String(APP.eng === eng && eng.layout() === l.key));
-      const cv = document.createElement('canvas');
-      cv.width = 132; cv.height = 132;
-      b.appendChild(cv);
+      b.appendChild(thumbCanvas(eng, l.key));
       b.addEventListener('click', () => {
         APP.eng = eng;
         eng.setLayout(l.key);
         APP.tab = 'editor';
+        invalidate();
         render();
       });
       row.appendChild(b);
-      thumbFor(eng, l.key, cv);
     }
     g.appendChild(row);
     body.appendChild(g);
@@ -1345,6 +1391,7 @@ function slider(c, eng, ctl, onSet){
     const v = +e.target.value;
     row.querySelector('.chip').textContent = v + ctl.suffix;
     (onSet || eng.set)(ctl.key, v);
+    invalidate();
   });
   c.appendChild(row);
   c.appendChild(inp);
@@ -1371,7 +1418,7 @@ function renderEditor(){
       const b = document.createElement('button');
       b.textContent = rot + '  ' + k;
       b.setAttribute('aria-pressed', String(dirs.value === k));
-      b.addEventListener('click', () => { eng.setDir(k); render(); });
+      b.addEventListener('click', () => { eng.setDir(k); invalidate(); render(); });
       seg.appendChild(b);
     });
     forma.appendChild(seg);
@@ -1393,7 +1440,7 @@ function renderEditor(){
       o.value = k; o.textContent = rot; o.selected = k === m.value;
       sel.appendChild(o);
     });
-    sel.addEventListener('change', e => { eng.setMode(e.target.value); render(); });
+    sel.addEventListener('change', e => { eng.setMode(e.target.value); invalidate(); render(); });
     mov.appendChild(sel);
     mov.appendChild(document.createElement('div')).style.height = '10px';
   }
@@ -1404,7 +1451,7 @@ function renderEditor(){
       const b = document.createElement('button');
       b.textContent = t.label;
       b.setAttribute('aria-pressed', String(t.value));
-      b.addEventListener('click', () => { eng.toggle(t.key); render(); });
+      b.addEventListener('click', () => { eng.toggle(t.key); invalidate(); render(); });
       seg.appendChild(b);
     });
     mov.appendChild(seg);
@@ -1420,7 +1467,7 @@ function renderEditor(){
     o.value = f.key; o.textContent = f.key; o.selected = f.key === String(eng.format());
     sel.appendChild(o);
   });
-  sel.addEventListener('change', e => eng.setFormat(e.target.value));
+  sel.addEventListener('change', e => { eng.setFormat(e.target.value); invalidate(); });
   saida.appendChild(sel);
   const sub = document.createElement('div');
   sub.className = 'csub';
@@ -1445,15 +1492,26 @@ function renderPal(){
     b.style.background = p.ink;
     b.title = p.name;
     b.setAttribute('aria-pressed', String(String(p.key) === String(eng.palette())));
-    b.addEventListener('click', () => { eng.setPalette(p.key); renderPal(); if (APP.tab === 'assets') renderAssets(); });
+    b.addEventListener('click', () => { eng.setPalette(p.key); invalidate(); renderPal(); if (APP.tab === 'assets') renderAssets(); });
     sw.appendChild(b);
   });
 
+  // A rampa mostra os tons da paleta e o ponto marca qual deles e o acento.
+  // Clicar troca o acento — e o que faz o ponto significar alguma coisa.
   const ramp = $('palRamp');
+  const acento = APP.eng.accent().toLowerCase();
   ramp.innerHTML = '';
   atual.bands.forEach(c => {
     const b = document.createElement('button');
     b.style.background = c;
+    b.title = c;
+    b.setAttribute('aria-pressed', String(c.toLowerCase() === acento));
+    b.addEventListener('click', () => {
+      APP.eng.setAccent(c);
+      invalidate();
+      renderPal();
+      if (APP.tab === 'assets') renderAssets();
+    });
     ramp.appendChild(b);
   });
 }
@@ -1468,7 +1526,7 @@ function renderMenu(){
     b.addEventListener('click', () => { fn(); m.classList.remove('on'); });
     m.appendChild(b);
   };
-  item('Nova semente', APP.eng.seed(), () => { APP.eng.reseed(); render(); });
+  item('Nova semente', APP.eng.seed(), () => { APP.eng.reseed(); invalidate(); render(); });
   item('Exportar PNG', '', () => APP.eng.exportPNG());
   if (APP.eng.exportSVG) item('Exportar SVG', '', () => APP.eng.exportSVG());
   if (APP.eng.hasVideo) item('Exportar WebM', '', () => APP.eng.exportWebM());
@@ -1521,6 +1579,7 @@ stage.addEventListener('pointerdown', e => {
 stage.addEventListener('pointermove', e => {
   if (!drag) return;
   APP.eng.orbit(e.clientX - drag.x, e.clientY - drag.y);
+  invalidate();
   drag = { x:e.clientX, y:e.clientY };
 });
 stage.addEventListener('pointerup', () => { drag = null; });
@@ -1528,12 +1587,13 @@ stage.addEventListener('wheel', e => {
   if (APP.eng !== ENG3D) return;
   e.preventDefault();
   APP.eng.zoomBy(e.deltaY);
+  invalidate();
 }, { passive:false });
 
 document.addEventListener('keydown', e => {
   if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
   if (e.code === 'Space'){ e.preventDefault(); APP.playing = !APP.playing; render(); }
-  if (e.key.toLowerCase() === 'n'){ APP.eng.reseed(); render(); }
+  if (e.key.toLowerCase() === 'n'){ APP.eng.reseed(); invalidate(); render(); }
   if (e.key.toLowerCase() === 'e') APP.eng.exportPNG();
 });
 
