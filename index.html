@@ -216,12 +216,76 @@
 
 <script>
 /* ==================================================================== *
- *  Gerador — uma pagina so.
+ *  Gerador — uma página só.
  *
- *  Os dois motores vivem em IIFEs separadas e sao copias verbatim do que
- *  rodava em cada pagina antiga: mesma geometria, mesmas correcoes. Cada
- *  uma expoe uma API pequena (draw, layouts, controles, export) e a casca
- *  aqui embaixo nao sabe nada de dentro delas.
+ *  Os dois motores vivem em IIFEs separadas e são cópias verbatim do que
+ *  rodava em cada página antiga: mesma geometria, mesmas correções. Cada
+ *  um expõe o adaptador descrito abaixo, e a casca não sabe nada de dentro
+ *  deles — nem quantos templates existem, nem o que cada controle faz.
+ *
+ *  ------------------------------------------------------------------
+ *  O CONTRATO DO ADAPTADOR
+ *  ------------------------------------------------------------------
+ *  Um motor novo entra na aplicação implementando isto. Nada além disso
+ *  é olhado pela casca, e `test.html` verifica o contrato inteiro — a
+ *  constante CONTRATO de lá é esta lista em forma executável.
+ *
+ *  IDENTIDADE
+ *    id            string curta que nomeia o grupo na aba Assets ('2d')
+ *
+ *  TEMPLATES
+ *    layouts()     -> [{ key, name }] tudo que o motor sabe desenhar
+ *    layout()      -> key do template ativo
+ *    setLayout(k)  troca o template. ATENÇÃO: reaplica o preset dele, ou
+ *                  seja, descarta os ajustes do usuário. Quem só quer
+ *                  espiar um template tem de usar snapshot/restore em
+ *                  volta — foi esse detalhe que fez a busca da aba Assets
+ *                  apagar silenciosamente os ajustes de quem digitava.
+ *
+ *  DESENHO
+ *    draw(ctx,W,H) pinta o quadro inteiro, fundo incluído. Não pode
+ *                  deixar pixel transparente: a casca nunca limpa o
+ *                  canvas antes.
+ *    advance(dt)   -> bool: avança o tempo e responde SE ALGO MUDOU.
+ *                  Responder true à toa custa um repaint por quadro para
+ *                  sempre; responder false quando mudou congela a tela.
+ *
+ *  CONTROLES  (a casca monta a UI a partir do que vier, sem interpretar)
+ *    controls()    -> [{ key, label, min, max, value, suffix }] do card Forma
+ *    motion()      -> idem, do card Movimento
+ *    set(k,v)      escreve um controle
+ *    get(k)        -> valor atual. set/get têm de concordar
+ *
+ *  ESTADO
+ *    snapshot()    -> objeto opaco com o estado inteiro
+ *    restore(o)    devolve exatamente aquele estado. O par precisa fechar:
+ *                  restore(snapshot()) não pode mudar nada
+ *    seed()        -> semente atual, para exibição
+ *    reseed()      sorteia outra
+ *
+ *  CORES
+ *    palettes()    -> [{ key, name, bg, ink, bands }]
+ *    palette()     -> key da paleta ativa      setPalette(k)
+ *    accent()      -> cor de acento em hex     setAccent(c)
+ *
+ *  SAÍDA
+ *    formats()     -> [{ key, a }] com a razão de aspecto
+ *    format()      -> key do formato ativo     setFormat(k)
+ *    exportPNG()   baixa o PNG
+ *
+ *  ------------------------------------------------------------------
+ *  OPCIONAIS — a casca detecta por CAPACIDADE, nunca por identidade do
+ *  motor: se o método existe, o controle aparece.
+ *  ------------------------------------------------------------------
+ *    dirs()/setDir(d)      quatro direções discretas, viram botões
+ *    modes()/setMode(m)    lista de animações, vira um select
+ *    toggles()/toggle(k)   liga-desliga, viram botões de estado
+ *    camera()              controles extras, ganham um card próprio
+ *    orbit(dx,dy)          arrastar no canvas passa a orbitar
+ *    zoomBy(d)             a roda do mouse passa a dar zoom
+ *    exportSVG()           acrescenta o item no menu
+ *    exportWebM(), hasVideo  idem, para vídeo
+ *    useCanvas(c)          recebe o canvas do palco, se precisar dele
  * ==================================================================== */
 
 /* ---------------------------- motor 2D ---------------------------- */
@@ -1572,7 +1636,7 @@ document.addEventListener('click', e => {
 /* orbita do 3D direto no canvas */
 let drag = null;
 stage.addEventListener('pointerdown', e => {
-  if (APP.eng !== ENG3D) return;
+  if (!APP.eng.orbit) return;              // capacidade, nao identidade do motor
   drag = { x:e.clientX, y:e.clientY };
   stage.setPointerCapture(e.pointerId);
 });
@@ -1584,7 +1648,7 @@ stage.addEventListener('pointermove', e => {
 });
 stage.addEventListener('pointerup', () => { drag = null; });
 stage.addEventListener('wheel', e => {
-  if (APP.eng !== ENG3D) return;
+  if (!APP.eng.zoomBy) return;
   e.preventDefault();
   APP.eng.zoomBy(e.deltaY);
   invalidate();

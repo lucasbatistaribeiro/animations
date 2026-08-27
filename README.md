@@ -177,6 +177,22 @@ O tamanho segue a convenção usual, pelo lado menor: 1080 dá 1920×1080, 1080�
 
 ---
 
+## Como um motor entra na aplicação
+
+A casca não sabe nada de dentro dos motores — nem quantos templates existem, nem o que cada controle faz. Ela conversa com eles por um **adaptador de 23 métodos**, documentado num bloco no topo do `index.html`. Implementá-lo é tudo o que um motor novo precisa fazer.
+
+O bloco cobre identidade, templates, desenho, controles, estado, cores e saída, mais os **opcionais** — direções, modos, toggles, câmera, órbita, zoom, SVG e vídeo. A casca detecta opcional por **capacidade, nunca por identidade do motor**: se o método existe, o controle aparece.
+
+Três invariantes que a assinatura não conta e que já custaram bug:
+
+- **`draw` pinta o quadro inteiro**, fundo incluído — a casca nunca limpa o canvas antes;
+- **`advance` responde se algo mudou**. Responder `true` à toa custa um repaint por quadro para sempre; responder `false` quando mudou congela a tela;
+- **`setLayout` reaplica o preset** do template, descartando os ajustes do usuário. Quem só quer espiar um template tem de usar `snapshot`/`restore` em volta. Foi esse detalhe que fez a busca da aba Assets apagar em silêncio os ajustes de quem digitava.
+
+A constante `CONTRATO` do `test.html` é essa mesma lista em forma executável, então a documentação não pode divergir do que é cobrado sem o teste acusar.
+
+---
+
 ## Teste de fumaça
 
 **[/test.html](https://lucasbatistaribeiro.github.io/animations/test.html)** varre os dois motores e imprime uma tabela: contrato do adaptador, todos os templates em cada modo, direção, contagem mínima e máxima e três fases, todas as paletas, e a integridade do estado. São ~290 casos de desenho em menos de um segundo.
