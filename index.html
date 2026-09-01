@@ -294,10 +294,12 @@
   .pop{
     position:fixed;z-index:7;background:var(--s1);border:1px solid var(--line);
     border-radius:17px;padding:16px;box-shadow:var(--sombra),var(--topo);
-    transform-origin:bottom left;
+    /* Centrada, ela nao brota mais do canto do botao: cresce do proprio
+       centro, que e de onde o olho ja esta esperando que cresca.        */
+    transform-origin:center;
     /* A largura era so a do conteudo: a paleta media 422px e sangrava 47px
        para fora de uma tela de 375. O teto aqui e a tela, nao o conteudo,
-       e a altura quem fecha e o popup(), que sabe onde a barra esta.    */
+       e a altura quem fecha e o popup(), que mede a janela.             */
     max-width:calc(100vw - 24px);
     overflow-y:auto;overscroll-behavior:contain;
     opacity:0;visibility:hidden;transform:translateY(10px) scale(.96);
@@ -2372,13 +2374,13 @@ function popup(el, ancora){
   if (!abrindo) return;
   // O popover nao usa mais display:none, entao a caixa ja tem tamanho aqui:
   // da para posicionar ANTES de mostrar, e a animacao comeca no lugar certo.
-  const r = ancora.getBoundingClientRect();
-  // Primeiro o teto: um menu mais alto que o espaco acima da barra saia pelo
-  // topo da tela, e as ultimas opcoes ficavam inalcancaveis. Com o teto posto
-  // ANTES de medir, o offsetHeight abaixo ja e o tamanho que ele vai ter.
-  el.style.maxHeight = Math.max(140, r.top - 24) + 'px';
-  el.style.left = Math.max(12, Math.min(window.innerWidth - el.offsetWidth - 12, r.left - 20)) + 'px';
-  el.style.top = Math.max(12, r.top - el.offsetHeight - 12) + 'px';
+  // Primeiro o teto: uma caixa mais alta que a janela saia pelas duas pontas
+  // ao ser centrada, e as opcoes das pontas ficavam inalcancaveis. Com o teto
+  // posto ANTES de medir, o offsetHeight abaixo ja e o tamanho que ela vai
+  // ter — centrar por um valor que ainda vai mudar erra por metade da sobra.
+  el.style.maxHeight = (window.innerHeight - 24) + 'px';
+  el.style.left = Math.max(12, (window.innerWidth - el.offsetWidth) / 2) + 'px';
+  el.style.top = Math.max(12, (window.innerHeight - el.offsetHeight) / 2) + 'px';
   el.classList.add('on');
   ancora.setAttribute('aria-expanded', 'true');
 }
