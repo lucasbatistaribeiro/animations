@@ -65,15 +65,33 @@
   :focus:not(:focus-visible){outline:none}
 
   /* ---------- painel ---------- */
+  /* Para quem olha, painel, paleta e menu sao a mesma coisa: uma caixa que a
+     barra abre. Entao abrem no mesmo lugar, o centro, e com o mesmo gesto —
+     encostado a esquerda o painel era uma quarta superficie a decorar.   */
   .painel{
-    position:fixed;left:24px;top:24px;bottom:110px;width:328px;z-index:5;
+    position:fixed;left:50%;top:50%;width:328px;z-index:5;
     background:var(--s1);border:1px solid var(--line);border-radius:20px;
     display:flex;flex-direction:column;overflow:hidden;
     box-shadow:var(--sombra),var(--topo);
-    transform-origin:left center;
+    transform:translate(-50%,-50%);transform-origin:center;
     transition:transform var(--t-3) var(--e-out), opacity var(--t-2) var(--e-out);
   }
-  .painel.oculto{transform:translateX(-26px) scale(.97);opacity:0;pointer-events:none}
+  /* O translate que centra entra em TODAS as variantes: trocar a lista de
+     transform por outra sem ele jogava a caixa meia largura para a direita
+     no meio da animacao. */
+  .painel.oculto{transform:translate(-50%,-50%) translateY(10px) scale(.96);opacity:0;pointer-events:none}
+  /* As tres caixas centradas dividem o mesmo teto. A largura e a tela; a
+     altura para ANTES da barra, e como a caixa cresce para os dois lados a
+     partir do meio, o que ela deixa livre embaixo tem de sobrar em cima
+     tambem — dai o dobro.  --barra e medida em JS: a barra muda de altura
+     no estreito, e um teto errado esconderia o botao que fecha a caixa. */
+  .painel,.pop{
+    max-width:calc(100vw - 24px);
+    max-height:calc(100vh - var(--barra) * 2 - 24px);
+  }
+  @supports (height:1dvh){
+    .painel,.pop{max-height:calc(100dvh - var(--barra) * 2 - 24px)}
+  }
   @supports (backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px)){
     .painel,.barra,.pop{
       -webkit-backdrop-filter:blur(22px) saturate(1.35);
@@ -297,10 +315,6 @@
     /* Centrada, ela nao brota mais do canto do botao: cresce do proprio
        centro, que e de onde o olho ja esta esperando que cresca.        */
     transform-origin:center;
-    /* A largura era so a do conteudo: a paleta media 422px e sangrava 47px
-       para fora de uma tela de 375. O teto aqui e a tela, nao o conteudo,
-       e a altura quem fecha e o popup(), que mede a janela.             */
-    max-width:calc(100vw - 24px);
     overflow-y:auto;overscroll-behavior:contain;
     opacity:0;visibility:hidden;transform:translateY(10px) scale(.96);
     transition:opacity var(--t-2) var(--e-out), transform var(--t-2) var(--e-mola),
@@ -357,37 +371,16 @@
   .aviso.on{opacity:1;transform:translate(-50%,0)}
 
   @media (max-width:820px){
-    /* O painel desce para junto da barra. Ancorado no TOPO ele deixava 344px
-       de vazio entre a sua base e a barra — espaco que nao servia a nada e
-       que o corpo, preso em 46vh, precisava rolar sem ter. Agora a altura e
-       do conteudo ate um teto, e a mao ja esta embaixo, junto do botao que
-       abre e fecha.  --barra e medida em JS: a barra muda de altura aqui.  */
-    .painel{
-      left:12px;right:12px;width:auto;
-      top:auto;bottom:calc(var(--barra) + 12px);
-      height:auto;max-height:58vh;
-      transform-origin:bottom center;
-    }
-    /* No estreito o painel encosta na barra, entao ele entra e sai POR BAIXO:
-       deslizar de lado seria movimento numa direcao onde nao ha nada. */
-    .painel.oculto{transform:translateY(14px) scale(.98)}
     /* No celular a UI encosta nas bordas do aparelho, e ali moram o recorte
        da camera e a barra de gestos: sem as safe areas a barra ficava por
        BAIXO do home indicator, e o primeiro toque era do sistema, nao nosso.
        --barra continua certa sozinha — medirBarra() le o valor ja resolvido. */
     .barra{gap:8px;padding:8px;bottom:calc(16px + env(safe-area-inset-bottom, 0px))}
-    .painel{
-      left:calc(12px + env(safe-area-inset-left, 0px));
-      right:calc(12px + env(safe-area-inset-right, 0px));
-    }
     .exportar span{display:none}
-    /* Com o painel embaixo, o aviso nao tem mais 78px seus para ocupar: ele
-       cairia POR CIMA do painel. Sobe para o topo, que agora e so canvas. */
+    /* Embaixo, no celular, estao a barra e a mao que a opera. O aviso sobe
+       para o topo, onde nada disputa espaco com ele. */
     .aviso{top:calc(16px + env(safe-area-inset-top, 0px));bottom:auto;transform:translate(-50%,-10px)}
     .aviso.on{transform:translate(-50%,0)}
-  }
-  @supports (height:1dvh){
-    @media (max-width:820px){ .painel{max-height:58dvh} }
   }
 
   /* Movimento é acabamento, nunca requisito: quem pediu menos movimento
@@ -537,8 +530,6 @@
  *                          aplica. Nunca entra no arquivo exportado
  *    video()/setVideo(k,v) controles de duração, fps, ciclos e frame,
  *                          num card próprio
- *    setInset(px)          quanto espaço o painel ocupa à esquerda, para o
- *                          enquadramento do export não ficar deslocado
  *    useCanvas(c)          recebe o canvas do palco, se precisar dele
  * ==================================================================== */
 
@@ -1439,14 +1430,12 @@ function viewFor(W, H){
 
 /* retângulo do guia, em px do canvas */
 function cropBox(W, H){
-  // área livre: evita o painel, para o guia nunca ficar escondido atrás dele
-  const dpr = W / Math.max(1, window.innerWidth);
-  const inset = recuoDoPainel * dpr;
-  const AW = W - inset;
-  const A = EXP_ASPECT[S.expFormat] || (AW / H);
-  let w = AW * .92, h = w / A;
+  // O palco inteiro: o painel nao ocupa mais um lado da tela para o guia
+  // desviar dele — abre no centro, e sair da frente dele e fecha-lo.
+  const A = EXP_ASPECT[S.expFormat] || (W / H);
+  let w = W * .92, h = w / A;
   if (h > H * .92){ h = H * .92; w = h * A; }
-  return { x: inset + (AW - w) / 2, y: (H - h) / 2, w, h };
+  return { x: (W - w) / 2, y: (H - h) / 2, w, h };
 }
 
 /* tamanho do arquivo exportado */
@@ -1702,11 +1691,6 @@ async function exportWebM(){
     if (envSujo){ buildEnv(); envSujo = false; }
   };
 
-  /* Espaco reservado a esquerda para o painel flutuante. O motor nao tem como
-     saber se o painel esta aberto — quem sabe e a casca, entao ela avisa. Sem
-     isso, esconder o painel nao devolvia o espaco ao enquadramento. */
-  let recuoDoPainel = 264;
-
   const RANGES = {
     segments:[1,5], effector:[0,100], lobes:[1,12], height:[5,160], inner:[5,70], gap:[0,70]
   };
@@ -1778,7 +1762,6 @@ async function exportWebM(){
     hasVideo: true,
     // o guia mostra o recorte que o export ja aplica — sem ele o corte e invisivel
     drawGuide: (ctx, W, H) => drawGuide(ctx, W, H),
-    setInset: px => { recuoDoPainel = px; },
     video: () => [
       { key:'dur',    label:'Duração', min:1, max:12,  value:S.dur,    suffix:'s' },
       { key:'fps',    label:'FPS',     min:12, max:60, value:+S.fps,   suffix:'' },
@@ -1824,7 +1807,10 @@ const stage = $('stage');
 const sctx = stage.getContext('2d');
 ENG3D.useCanvas(stage);
 
-const APP = { eng: ENG2D, tab: 'assets', playing: true, busca: '', guia: false, painel: false, recuo: 0 };
+const APP = { eng: ENG2D, tab: 'assets', playing: true, busca: '', guia: false, caixa: null };
+/* As caixas que a barra abre, e o botao que abre cada uma. O painel disputa
+   o mesmo lugar (ver abrir()), mas nao e um popover: mora no HTML.       */
+const POPS = { pal:['popPal', 'btPal'], menu:['popMenu', 'btExport'] };
 const ENGINES = { '2d': ENG2D, '3d': ENG3D };
 
 /* Reconcilia o tamanho a cada quadro em vez de confiar so no evento de
@@ -1895,15 +1881,9 @@ function thumbCanvas(eng, key){
   cv = document.createElement('canvas');
   cv.width = 132; cv.height = 132;
   const estado = eng.snapshot();
-  // O recuo do painel e enquadramento DO PALCO — existe para o export nao
-  // cair atras do painel. Numa miniatura ele nao significa nada: empurrava a
-  // peca uns 24px para a direita num quadro de 132 e ainda encolhia a area
-  // util, entao todo cover 3D saia descentralizado. Zera em volta do desenho.
-  if (eng.setInset) eng.setInset(0);
   eng.setLayout(key);
   try { eng.draw(cv.getContext('2d'), cv.width, cv.height); } catch (e){ /* ignora */ }
   eng.restore(estado);
-  if (eng.setInset) eng.setInset(APP.recuo);
   THUMBS.set(chave, cv);
   return cv;
 }
@@ -2240,13 +2220,19 @@ function render(){
   const rolagem = corpo.scrollTop;
   const foco = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.fk;
 
-  $('painel').classList.toggle('oculto', !APP.painel);
+  $('painel').classList.toggle('oculto', APP.caixa !== 'painel');
   medirBarra();
-  aplicarRecuo();
-  $('btMenu').setAttribute('aria-pressed', String(APP.painel));
-  const rotMenu = APP.painel ? 'Esconder o painel (H)' : 'Mostrar o painel (H)';
+  $('btMenu').setAttribute('aria-pressed', String(APP.caixa === 'painel'));
+  const rotMenu = APP.caixa === 'painel' ? 'Esconder o painel (H)' : 'Mostrar o painel (H)';
   $('btMenu').title = rotMenu;
   $('btMenu').setAttribute('aria-label', rotMenu);
+  // As tres saem do mesmo APP.caixa: enquanto cada uma tinha o seu proprio
+  // liga-desliga, duas podiam estar ligadas ao mesmo tempo.
+  for (const k in POPS){
+    const [pop, bt] = POPS[k];
+    $(pop).classList.toggle('on', APP.caixa === k);
+    $(bt).setAttribute('aria-expanded', String(APP.caixa === k));
+  }
 
   $('abaAssets').setAttribute('aria-selected', String(APP.tab === 'assets'));
   $('abaEditor').setAttribute('aria-selected', String(APP.tab === 'editor'));
@@ -2288,22 +2274,14 @@ function render(){
   stage.style.cursor = APP.eng.orbit ? 'grab' : 'default';
 }
 
-/* No estreito o painel encosta na barra, e para isso precisa saber onde ela
-   termina. offsetHeight e o computed style, e nao o rect: a barra entra com
-   um translate, e medir o rect durante a animacao daria a altura de um lugar
-   por onde ela so passou. */
+/* As caixas centradas param antes da barra, e para isso precisam saber
+   quanto ela ocupa. offsetHeight e o computed style, e nao o rect: a barra
+   entra com um translate, e medir o rect durante a animacao daria a altura
+   de um lugar por onde ela so passou. */
 function medirBarra(){
   const b = document.querySelector('.barra');
   const desloc = parseFloat(getComputedStyle(b).bottom) || 0;
   document.documentElement.style.setProperty('--barra', Math.round(b.offsetHeight + desloc) + 'px');
-}
-
-/* O enquadramento do export precisa saber o espaco que o painel ocupa. Isso
-   depende da largura da janela, entao tem de ser refeito quando ela muda —
-   atravessar os 900px de um lado para o outro deixava o recuo mentindo. */
-function aplicarRecuo(){
-  APP.recuo = APP.painel && window.innerWidth > 900 ? 264 : 0;
-  for (const e of Object.values(ENGINES)) if (e.setInset) e.setInset(APP.recuo);
 }
 
 /* A tinta desliza ate a aba ativa. Medir na hora — e nao guardar posicoes —
@@ -2360,32 +2338,55 @@ $('busca').addEventListener('keydown', e => {
 $('limpar').addEventListener('click', limparBusca);
 
 $('btPlay').addEventListener('click', () => { APP.playing = !APP.playing; render(); });
-$('btMenu').addEventListener('click', () => { APP.painel = !APP.painel; render(); });
+$('btMenu').addEventListener('click', () => abrir(APP.caixa === 'painel' ? null : 'painel'));
 
-function fecharPops(){
-  for (const [pop, bt] of [['popPal', 'btPal'], ['popMenu', 'btExport']]){
-    $(pop).classList.remove('on');
-    $(bt).setAttribute('aria-expanded', 'false');
-  }
+/* ---------- as tres caixas ----------
+ * Painel, paleta e menu abrem no mesmo lugar, entao sao UM estado e nao tres
+ * liga-desligas: com tres, clicar na paleta com o painel aberto empilhava uma
+ * caixa em cima da outra, e a de baixo continuava clicavel pelas beiradas.
+ * E a que entra espera a que sai TERMINAR de sair — cruzar as duas animacoes
+ * ainda e ver duas caixas ao mesmo tempo, so que em movimento.           */
+/* A espera vem do CSS: com o numero copiado para ca, mexer em --t-3 e
+   esquecer deste lado poria a nova caixa por cima do rabo da anterior.   */
+const SAIDA = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--t-3')) || 300;
+let entrando = 0;
+
+function abrir(qual, depois){
+  const antes = APP.caixa;
+  clearTimeout(entrando);
+  // Pedir o que ja esta aberto nao fecha e reabre: seria uma piscada de 300ms
+  // no caminho de quem so trocou de aba.
+  if (qual === antes){ render(); if (depois) depois(); return; }
+  APP.caixa = null;
+  render();
+  if (!qual) return;
+  entrando = setTimeout(() => {
+    APP.caixa = qual;
+    if (POPS[qual]){
+      // Conteudo e posicao ANTES de aparecer: centrar mede a caixa, e medir
+      // uma que ainda vai crescer erra por metade do que falta crescer.
+      if (qual === 'pal') renderPal(); else renderMenu();
+      centrar($(POPS[qual][0]));
+    }
+    render();
+    if (depois) depois();
+  }, antes ? SAIDA : 0);
 }
-function popup(el, ancora){
-  const abrindo = !el.classList.contains('on');
-  fecharPops();
-  if (!abrindo) return;
-  // O popover nao usa mais display:none, entao a caixa ja tem tamanho aqui:
-  // da para posicionar ANTES de mostrar, e a animacao comeca no lugar certo.
-  // Primeiro o teto: uma caixa mais alta que a janela saia pelas duas pontas
-  // ao ser centrada, e as opcoes das pontas ficavam inalcancaveis. Com o teto
-  // posto ANTES de medir, o offsetHeight abaixo ja e o tamanho que ela vai
-  // ter — centrar por um valor que ainda vai mudar erra por metade da sobra.
-  el.style.maxHeight = (window.innerHeight - 24) + 'px';
+
+/* No centro da janela, e nao ancorada ao botao: a caixa aparece onde o olho
+   ja esta. O teto de altura e do CSS — aqui so sobra a conta do meio.    */
+function centrar(el){
   el.style.left = Math.max(12, (window.innerWidth - el.offsetWidth) / 2) + 'px';
   el.style.top = Math.max(12, (window.innerHeight - el.offsetHeight) / 2) + 'px';
-  el.classList.add('on');
-  ancora.setAttribute('aria-expanded', 'true');
 }
-$('btPal').addEventListener('click', e => { e.stopPropagation(); renderPal(); popup($('popPal'), $('btPal')); });
-$('btExport').addEventListener('click', e => { e.stopPropagation(); renderMenu(); popup($('popMenu'), $('btExport')); });
+
+/* Clique fora e Esc fecham o que flutua sobre a arte. O painel fica de fora:
+   arrastar o canvas para orbitar tambem e um clique fora, e perder o painel
+   a cada arrasto seria perder de vista o que se estava ajustando.        */
+function fecharPops(){ if (POPS[APP.caixa]) abrir(null); }
+
+$('btPal').addEventListener('click', e => { e.stopPropagation(); abrir(APP.caixa === 'pal' ? null : 'pal'); });
+$('btExport').addEventListener('click', e => { e.stopPropagation(); abrir(APP.caixa === 'menu' ? null : 'menu'); });
 document.addEventListener('click', e => {
   if (!e.target.closest('.pop') && !e.target.closest('.barra')) fecharPops();
 });
@@ -2426,19 +2427,18 @@ document.addEventListener('keydown', e => {
   }
   if (k === 'n'){ APP.eng.reseed(); invalidate(); render(); aviso('Nova semente: ' + APP.eng.seed()); }
   if (k === 'e') APP.eng.exportPNG();
-  if (k === 'h'){ APP.painel = !APP.painel; render(); }
+  if (k === 'h') abrir(APP.caixa === 'painel' ? null : 'painel');
   if (k === '/'){
     e.preventDefault();
-    APP.painel = true;
     APP.tab = 'assets';
-    render();
-    $('busca').focus();
-    $('busca').select();
+    // O foco vai junto, mas so depois: com o painel fechado ele entraria num
+    // campo que ainda nao esta na tela.
+    abrir('painel', () => { $('busca').focus(); $('busca').select(); });
   }
 });
 
 window.addEventListener('resize', () => {
-  resize(); moverTinta(); medirBarra(); aplicarRecuo();
+  resize(); moverTinta(); medirBarra();
   // as posicoes dos popovers foram calculadas contra a janela antiga
   fecharPops();
 });
