@@ -66,33 +66,32 @@
 
   /* ---------- painel ---------- */
   /* Para quem olha, painel, paleta e menu sao a mesma coisa: uma caixa que a
-     barra abre. Entao abrem no mesmo lugar, o centro, e com o mesmo gesto —
-     encostado a esquerda o painel era uma quarta superficie a decorar.   */
+     barra abre. Entao abrem no mesmo lugar — no meio da tela na horizontal,
+     logo acima da barra na vertical — e com o mesmo gesto. Encostado a
+     esquerda, o painel era uma quarta superficie a decorar; centrado nos
+     dois eixos, boiava longe do botao que o abre e do que o fecha.      */
   .painel{
-    position:fixed;left:50%;top:50%;width:328px;z-index:5;
+    position:fixed;left:50%;bottom:calc(var(--barra) + 12px);width:328px;z-index:5;
     background:var(--s1);border:1px solid var(--line);border-radius:20px;
     display:flex;flex-direction:column;overflow:hidden;
     box-shadow:var(--sombra),var(--topo);
-    transform:translate(-50%,-50%);transform-origin:center;
+    transform:translateX(-50%);transform-origin:bottom center;
     transition:transform var(--t-3) var(--e-out), opacity var(--t-2) var(--e-out);
   }
   /* O translate que centra entra em TODAS as variantes: trocar a lista de
      transform por outra sem ele jogava a caixa meia largura para a direita
      no meio da animacao. */
-  .painel.oculto{transform:translate(-50%,-50%) translateY(10px) scale(.96);opacity:0;pointer-events:none}
+  .painel.oculto{transform:translateX(-50%) translateY(10px) scale(.96);opacity:0;pointer-events:none}
   /* Nenhuma das tres pode alcancar a barra: e la que esta o botao que as
-     fecha.  --barra e medida em JS, porque a barra muda de altura no
-     estreito e um teto fixo esconderia esse botao.
-     O painel e centrado, entao cresce para os dois lados a partir do meio:
-     o que ele precisa deixar livre embaixo tem de sobrar em cima tambem —
-     dai o dobro. O popover encosta na barra, e so o que esta ACIMA dela e
-     dele — pelo dobro ele perderia 84px de altura util a toa. */
-  .painel,.pop{max-width:calc(100vw - 24px)}
-  .painel{max-height:calc(100vh - var(--barra) * 2 - 24px)}
-  .pop{max-height:calc(100vh - var(--barra) - 24px)}
+     fecha. Como todas param no mesmo lugar, o teto tambem e um so — o que
+     sobra acima da barra.  --barra e medida em JS, porque a barra muda de
+     altura no estreito e um teto fixo esconderia esse botao. */
+  .painel,.pop{
+    max-width:calc(100vw - 24px);
+    max-height:calc(100vh - var(--barra) - 24px);
+  }
   @supports (height:1dvh){
-    .painel{max-height:calc(100dvh - var(--barra) * 2 - 24px)}
-    .pop{max-height:calc(100dvh - var(--barra) - 24px)}
+    .painel,.pop{max-height:calc(100dvh - var(--barra) - 24px)}
   }
   @supports (backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px)){
     .painel,.barra,.pop{
