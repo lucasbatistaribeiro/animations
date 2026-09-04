@@ -80,17 +80,19 @@
      transform por outra sem ele jogava a caixa meia largura para a direita
      no meio da animacao. */
   .painel.oculto{transform:translate(-50%,-50%) translateY(10px) scale(.96);opacity:0;pointer-events:none}
-  /* As tres caixas centradas dividem o mesmo teto. A largura e a tela; a
-     altura para ANTES da barra, e como a caixa cresce para os dois lados a
-     partir do meio, o que ela deixa livre embaixo tem de sobrar em cima
-     tambem — dai o dobro.  --barra e medida em JS: a barra muda de altura
-     no estreito, e um teto errado esconderia o botao que fecha a caixa. */
-  .painel,.pop{
-    max-width:calc(100vw - 24px);
-    max-height:calc(100vh - var(--barra) * 2 - 24px);
-  }
+  /* Nenhuma das tres pode alcancar a barra: e la que esta o botao que as
+     fecha.  --barra e medida em JS, porque a barra muda de altura no
+     estreito e um teto fixo esconderia esse botao.
+     O painel e centrado, entao cresce para os dois lados a partir do meio:
+     o que ele precisa deixar livre embaixo tem de sobrar em cima tambem —
+     dai o dobro. O popover encosta na barra, e so o que esta ACIMA dela e
+     dele — pelo dobro ele perderia 84px de altura util a toa. */
+  .painel,.pop{max-width:calc(100vw - 24px)}
+  .painel{max-height:calc(100vh - var(--barra) * 2 - 24px)}
+  .pop{max-height:calc(100vh - var(--barra) - 24px)}
   @supports (height:1dvh){
-    .painel,.pop{max-height:calc(100dvh - var(--barra) * 2 - 24px)}
+    .painel{max-height:calc(100dvh - var(--barra) * 2 - 24px)}
+    .pop{max-height:calc(100dvh - var(--barra) - 24px)}
   }
   @supports (backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px)){
     .painel,.barra,.pop{
@@ -312,9 +314,9 @@
   .pop{
     position:fixed;z-index:7;background:var(--s1);border:1px solid var(--line);
     border-radius:17px;padding:16px;box-shadow:var(--sombra),var(--topo);
-    /* Centrada, ela nao brota mais do canto do botao: cresce do proprio
-       centro, que e de onde o olho ja esta esperando que cresca.        */
-    transform-origin:center;
+    /* Ela abre em cima da barra, entao e da borda de baixo que cresce: com
+       a origem no meio, a caixa se afastava do botao ao entrar.         */
+    transform-origin:bottom center;
     overflow-y:auto;overscroll-behavior:contain;
     opacity:0;visibility:hidden;transform:translateY(10px) scale(.96);
     transition:opacity var(--t-2) var(--e-out), transform var(--t-2) var(--e-mola),
@@ -2363,21 +2365,26 @@ function abrir(qual, depois){
   entrando = setTimeout(() => {
     APP.caixa = qual;
     if (POPS[qual]){
-      // Conteudo e posicao ANTES de aparecer: centrar mede a caixa, e medir
-      // uma que ainda vai crescer erra por metade do que falta crescer.
+      // Conteudo e posicao ANTES de aparecer: posicionar mede a caixa, e
+      // medir uma que ainda vai crescer erra pelo que falta crescer.
       if (qual === 'pal') renderPal(); else renderMenu();
-      centrar($(POPS[qual][0]));
+      posicionar($(POPS[qual][0]));
     }
     render();
     if (depois) depois();
   }, antes ? SAIDA : 0);
 }
 
-/* No centro da janela, e nao ancorada ao botao: a caixa aparece onde o olho
-   ja esta. O teto de altura e do CSS — aqui so sobra a conta do meio.    */
-function centrar(el){
+/* No meio da janela na horizontal, e logo acima da barra na vertical: a
+   caixa foi pedida ali, e e para la que a mao volta. Centrada nos dois eixos
+   ela parava a meio caminho do botao que a abriu — e do que fecha. A barra e
+   medida na hora: ela muda de altura no estreito. O teto de altura e do CSS.
+   O rect da barra, e nao o do botao: o botao tem o padding dela por fora, e
+   medir por ele encostava a caixa 11px mais para baixo do que se ve.     */
+function posicionar(el){
+  const barra = document.querySelector('.barra').getBoundingClientRect();
   el.style.left = Math.max(12, (window.innerWidth - el.offsetWidth) / 2) + 'px';
-  el.style.top = Math.max(12, (window.innerHeight - el.offsetHeight) / 2) + 'px';
+  el.style.top = Math.max(12, barra.top - el.offsetHeight - 12) + 'px';
 }
 
 /* Clique fora e Esc fecham o que flutua sobre a arte. O painel fica de fora:
