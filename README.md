@@ -4,7 +4,7 @@ Gerador de assets generativos — formas 2D e blocos extrudados em 3D — inspir
 
 **▶ [lucasbatistaribeiro.github.io/animations](https://lucasbatistaribeiro.github.io/animations/)**
 
-A home **é** o gerador: canvas em tela cheia, painel flutuante à esquerda e barra de ações embaixo. Não há página intermediária para escolher entre 2D e 3D — os dois convivem na aba *Assets*, como grupos de template.
+A home **é** o gerador: canvas em tela cheia, barra de ações embaixo e, acima dela, a caixa que a barra abre — painel, paleta ou menu, uma de cada vez. Não há página intermediária para escolher entre 2D e 3D — os dois convivem na aba *Assets*, como grupos de template.
 
 | | |
 |---|---|
@@ -22,8 +22,9 @@ Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só os 
 | ajustar | aba **Editor**: *Forma*, *Câmera* (só nos 3D), *Movimento* e *Saída* |
 | orbitar | nos templates 3D, arraste no canvas; a roda do mouse dá zoom |
 | paleta | botão das bolinhas na barra: troca a paleta e mostra a rampa de tons. A bolinha na rampa marca o acento; clicar num tom troca |
-| exportar | botão **Exportar**: abre o menu com PNG, SVG (2D), WebM (3D), nova semente e copiar link |
-| esconder o painel | o botão do hambúrguer. O enquadramento do export se recentra junto |
+| exportar | botão **Exportar**: abre o menu com PNG, SVG (2D), WebM (3D), nova semente, copiar link e as duas saídas em HTML |
+| levar para um site | **Copiar HTML** (2D) cola a peça em vetor dentro do seu HTML; **Copiar embed** cola um `<iframe>` que mantém a animação. Os dois vêm com o CSS junto |
+| esconder o painel | o botão do hambúrguer. Painel, paleta e menu dividem o mesmo lugar: abrir um fecha o outro, e a caixa que entra espera a que sai terminar de sair |
 
 | link | o estado vai no hash da URL: recarregar não perde nada e o link é compartilhável. **Copiar link** está no menu |
 
@@ -172,6 +173,12 @@ O tamanho segue a convenção usual, pelo lado menor: 1080 dá 1920×1080, 1080�
 | **PNG** | todos os templates. 2D sai em 2× do formato escolhido (até 3840×2160 no wide); 3D sai na resolução configurada |
 | **SVG** | só nos templates 2D — a mesma primitiva e a mesma ordem de pintura do canvas |
 | **WebM** | só nos templates 3D, em loop perfeito. Duração, fps, ciclos e o scrubber de frame ficam no card *Vídeo* |
+| **Copiar HTML** | só nos templates 2D. Vai para a área de transferência um `<figure>` com o SVG inline e o `<style>` junto: HTML e CSS puros, sem JS, sem depender de nada continuar no ar. Congela um quadro |
+| **Copiar embed** | todos os templates. Um `<iframe>` apontando para esta página com o estado no hash, mais o CSS que segura a proporção antes de carregar. Mantém a animação, ao preço de o site passar a depender daqui |
+
+O embed abre a página com `?embed`: mesma página, sem barra, sem painel, sem teclado nem zoom pela roda — dentro de um retângulo alheio, a UI seria um controle que não é de quem hospeda, e roubar a rolagem do site seria pior ainda. A classe entra no `<html>` por um script no `<head>`, antes do primeiro quadro, senão a barra pisca antes de sumir.
+
+O endereço do embed é o de onde a página está servida. Aberta do disco não há endereço que sirva a um site, então cai para o Pages.
 
 Nos templates 3D o export recorta pelo **guia de enquadramento**: o botão no card *Saída* mostra exatamente a área que vai para o arquivo, com o resto escurecido. O guia é pintado por cima da cena e nunca entra no export.
 

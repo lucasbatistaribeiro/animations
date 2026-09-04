@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Gerador — formas generativas</title>
 <meta name="description" content="Gerador de assets generativos: formas 2D e blocos extrudados 3D, direto no navegador.">
+<script>
+  /* Antes do CSS pintar: com a classe posta la no fim do body, a barra
+     aparecia por um quadro dentro do embed de quem so queria a arte. */
+  if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embed');
+</script>
 <style>
   /* ---------- tokens ----------
      A rampa de superfícies existe para dar ELEVAÇÃO: preto sobre preto não
@@ -265,6 +270,12 @@
   select:hover{background-color:var(--s4)}
   select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
   select option{background:#2e2e2e;color:var(--txt)}
+
+  /* ---------- embed ----------
+     Com ?embed a pagina e so a arte. Quem recebe o iframe ja tem a UI do
+     proprio site, e a nossa barra flutuando dentro de um retangulo alheio
+     seria um controle que nao e dele. */
+  .embed .barra,.embed .painel,.embed .aviso{display:none}
 
   /* ---------- barra de baixo ---------- */
   .barra{
@@ -535,6 +546,8 @@
  *    orbit(dx,dy)          arrastar no canvas passa a orbitar
  *    zoomBy(d)             a roda do mouse passa a dar zoom
  *    exportSVG()           acrescenta o item no menu
+ *    svgSource()           -> o mesmo vetor, como texto. E o que permite a
+ *                          casca embrulhar a peca em HTML para outro site
  *    exportWebM(), hasVideo  idem, para vídeo
  *    drawGuide(ctx,W,H)    pinta por cima da cena o recorte que o export
  *                          aplica. Nunca entra no arquivo exportado
@@ -951,7 +964,10 @@ function exportPNG(scale){
   drawScene(off.getContext('2d'), W, H);
   download(off.toDataURL('image/png'), 'arcs-' + S.seed + '-' + S.format + '@' + scale + 'x.png');
 }
-function exportSVG(){
+/* O mesmo vetor do arquivo .svg, so que como texto: e dele que a casca monta
+   o HTML para colar num site. Separar a fonte do download foi o que permitiu
+   ter as duas saidas sem duas verdades sobre o desenho. */
+function svgSource(){
   const { W, H } = expDims(1);
   const n = v => Math.round(v * 100) / 100;
   const M = Math.round(Math.hypot(W, H) * 2);
@@ -995,7 +1011,10 @@ function exportSVG(){
   }
   out.push('</g>');
   out.push('</svg>');
-  const url = URL.createObjectURL(new Blob([out.join('\n')], { type: 'image/svg+xml' }));
+  return out.join('\n');
+}
+function exportSVG(){
+  const url = URL.createObjectURL(new Blob([svgSource()], { type: 'image/svg+xml' }));
   download(url, 'arcs-' + S.seed + '-' + S.format + '.svg', true);
 }
 
@@ -1058,6 +1077,7 @@ function exportSVG(){
     // o motor 2D exporta por escala; sem um padrao aqui o canvas sai 0x0
     exportPNG: (scale = 2) => exportPNG(scale),
     exportSVG,
+    svgSource,
     hasVideo: false
   };
 })();
@@ -1791,14 +1811,20 @@ async function exportWebM(){
    Escrito com atraso, porque um arraste de slider dispara dezenas de eventos
    e replaceState a cada um seria desperdicio. */
 let hashTimer = 0;
+/* O estado inteiro numa string. O hash da barra de endereco e o do embed sao
+   o MESMO texto: gerar cada um do seu jeito era combinar que um dia iam
+   divergir, e um embed com estado diferente do link e um embed errado. */
+function estadoEmTexto(){
+  const o = { e: APP.eng.id, s: APP.eng.snapshot() };
+  return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/, '');
+}
 function escreverHash(){
   clearTimeout(hashTimer);
+  // O hash e escrito com atraso porque arrastar um controle o reescreveria a
+  // cada quadro; por isso quem precisa do estado AGORA chama estadoEmTexto().
   hashTimer = setTimeout(() => {
-    try {
-      const o = { e: APP.eng.id, s: APP.eng.snapshot() };
-      const txt = btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/, '');
-      history.replaceState(null, '', '#' + txt);
-    } catch (e){ /* hash e conveniencia: nunca derruba a pagina */ }
+    try { history.replaceState(null, '', '#' + estadoEmTexto()); }
+    catch (e){ /* hash e conveniencia: nunca derruba a pagina */ }
   }, 300);
 }
 function lerHash(){
@@ -1821,6 +1847,9 @@ const APP = { eng: ENG2D, tab: 'assets', playing: true, busca: '', guia: false, 
 /* As caixas que a barra abre, e o botao que abre cada uma. O painel disputa
    o mesmo lugar (ver abrir()), mas nao e um popover: mora no HTML.       */
 const POPS = { pal:['popPal', 'btPal'], menu:['popMenu', 'btExport'] };
+/* Decidido no <head>, antes do primeiro quadro; aqui so se le o que ja foi
+   decidido, para nao haver duas leituras da mesma pergunta. */
+const EMBED = document.documentElement.classList.contains('embed');
 const ENGINES = { '2d': ENG2D, '3d': ENG3D };
 
 /* Reconcilia o tamanho a cada quadro em vez de confiar so no evento de
@@ -2176,6 +2205,93 @@ function renderPal(){
 }
 
 /* ---------- menu ---------- */
+/* ---------- levar a peca para outro site ----------
+ * Duas saidas, porque sao dois usos. O HTML estatico leva a peca DENTRO do
+ * arquivo: um quadro em vetor, sem JS, sem depender de nada continuar no ar
+ * — e por isso so existe onde ha vetor. O embed leva um endereco: continua
+ * animado e vale para todos os templates, ao preco de o site alheio passar a
+ * depender desta pagina.                                                  */
+const CLASSE = 'peca-generativa';
+/* Onde ESTA pagina esta servida e de onde o embed vai viver. Aberta do disco
+   nao ha endereco que sirva a um site, entao cai para onde ela esta
+   publicada — um embed apontando para file:// nao carrega em lugar nenhum. */
+function base(){
+  return location.protocol.indexOf('http') === 0
+    ? location.origin + location.pathname
+    : 'https://lucasbatistaribeiro.github.io/animations/';
+}
+function nomeDoTemplate(){
+  const l = APP.eng.layouts().find(l => l.key === APP.eng.layout());
+  return l ? l.name : APP.eng.layout();
+}
+/* `aspect-ratio:1.7778` no CSS de um site alheio nao diz nada; `16 / 9` diz.
+   O motor entrega a razao como numero, e a fracao e reconstruida aqui — uma
+   segunda tabela de formatos seria mais uma tabela para sair do lugar. */
+function razao(a){
+  for (let d = 1; d <= 32; d++){
+    const n = a * d;
+    if (Math.abs(n - Math.round(n)) < 1e-6) return Math.round(n) + ' / ' + d;
+  }
+  return String(Math.round(a * 1e4) / 1e4);
+}
+function assinaturaDaPeca(){
+  return '<!-- ' + nomeDoTemplate() + ' — semente ' + APP.eng.seed() + ' — ' +
+         'gerado em ' + base() + ' -->';
+}
+function htmlEstatico(){
+  return [
+    assinaturaDaPeca(),
+    '<figure class="' + CLASSE + '">',
+    APP.eng.svgSource().replace(/^/gm, '  '),
+    '</figure>',
+    '',
+    '<style>',
+    '.' + CLASSE + '{margin:0;line-height:0}',
+    // Largura do site, altura pela razao do proprio vetor: assim a peca cabe
+    // em qualquer coluna sem nunca distorcer.
+    '.' + CLASSE + ' svg{display:block;width:100%;height:auto}',
+    '</style>'
+  ].join('\n');
+}
+function htmlEmbed(){
+  const f = APP.eng.formats().find(f => f.key === APP.eng.format());
+  const nome = nomeDoTemplate();
+  return [
+    assinaturaDaPeca(),
+    '<div class="' + CLASSE + '">',
+    '  <iframe src="' + base() + '?embed#' + estadoEmTexto() + '"',
+    '          title="' + nome + '" loading="lazy"></iframe>',
+    '</div>',
+    '',
+    '<style>',
+    // A razao segura a altura antes de o iframe carregar: sem ela a caixa
+    // nasce com 150px de altura padrao e o site pula quando a arte entra.
+    '.' + CLASSE + '{position:relative;aspect-ratio:' + razao(f ? f.a : 1) + '}',
+    '.' + CLASSE + ' iframe{position:absolute;inset:0;width:100%;height:100%;border:0}',
+    '</style>'
+  ].join('\n');
+}
+/* A area de transferencia moderna exige origem segura: aberta do disco, ou
+   servida por http simples numa rede local, ela simplesmente nao existe — e
+   um snippet que nao chega a lugar nenhum e uma saida que nao existe. O
+   caminho antigo, selecionar um textarea fora de tela e mandar copiar, ainda
+   funciona nesses casos. */
+async function copiar(texto, ok){
+  try {
+    if (navigator.clipboard){ await navigator.clipboard.writeText(texto); aviso(ok); return; }
+  } catch (e){ /* segue para o caminho antigo */ }
+  const ta = document.createElement('textarea');
+  ta.value = texto;
+  ta.setAttribute('readonly', '');
+  ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+  document.body.appendChild(ta);
+  ta.select();
+  let foi = false;
+  try { foi = document.execCommand('copy'); } catch (e){ /* foi fica falso */ }
+  ta.remove();
+  aviso(foi ? ok : 'O navegador bloqueou a área de transferência');
+}
+
 function renderMenu(){
   const m = $('popMenu');
   m.innerHTML = '';
@@ -2205,6 +2321,10 @@ function renderMenu(){
       catch (e){ aviso('Não deu para copiar — o link está na barra de endereço'); }
     }, 350);
   });
+  // Só onde ha vetor: sem svgSource() o snippet estatico seria um PNG em
+  // base64 fingindo ser HTML.
+  if (APP.eng.svgSource) item('Copiar HTML', 'SVG inline', () => copiar(htmlEstatico(), 'HTML copiado — cole no site'));
+  item('Copiar embed', 'iframe', () => copiar(htmlEmbed(), 'Embed copiado — cole no site'));
   item('Código no GitHub', '', () => window.open('https://github.com/lucasbatistaribeiro/animations', '_blank'));
   d = document.createElement('div'); d.className = 'div'; m.appendChild(d);
   const teclas = document.createElement('div');
@@ -2421,14 +2541,18 @@ stage.addEventListener('pointermove', e => {
   drag = { x:e.clientX, y:e.clientY };
 });
 stage.addEventListener('pointerup', () => { drag = null; if (APP.eng.orbit) stage.style.cursor = 'grab'; });
-stage.addEventListener('wheel', e => {
+// Num embed a roda e do site que hospeda: dar zoom aqui roubaria a rolagem
+// da pagina de quem colou a peca. O arraste fica — ele nao impede rolar.
+if (!EMBED) stage.addEventListener('wheel', e => {
   if (!APP.eng.zoomBy) return;
   e.preventDefault();
   APP.eng.zoomBy(e.deltaY);
   invalidate();
 }, { passive:false });
 
-document.addEventListener('keydown', e => {
+// Idem para o teclado: dentro de um iframe com foco, o espaco daria play em
+// vez de rolar a pagina do site, e nao ha barra ali para explicar por que.
+if (!EMBED) document.addEventListener('keydown', e => {
   if (e.key === 'Escape'){ fecharPops(); return; }
   if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
