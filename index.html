@@ -54,6 +54,16 @@
     --t-1:110ms;
     --t-2:190ms;
     --t-3:300ms;
+    /* Um quarto degrau, e nao um numero solto: a casca CHEGANDO acontece uma
+       vez so, e ninguem esta esperando por ela — da para ser mais longa que
+       qualquer coisa que responda a um clique. */
+    --t-4:420ms;
+    /* Os dois abaixo nao sao duracao, sao espera. A barra segura 60ms para o
+       primeiro quadro pintar antes de ela comecar: sem isso a entrada dela
+       era engolida pela propria pintura inicial. E a cascata anda 45ms de um
+       card para o seguinte — e passo entre irmaos, nao tempo de ninguem. */
+    --espera-barra:60ms;
+    --passo-cascata:45ms;
     /* quanto a barra ocupa a partir da base da tela — medido em JS, porque a
        altura dela depende do que cabe dentro. O valor aqui e so o de antes
        da primeira medicao. */
@@ -170,7 +180,7 @@
   /* A entrada em cascata só roda quando o conteúdo REALMENTE troca — trocar
      de aba, de template, de motor. Reanimar tudo a cada clique num toggle
      transformaria um ajuste fino numa piscada de tela inteira.          */
-  .corpo.anima > *{animation:sobe var(--t-3) var(--e-out) both;animation-delay:calc(var(--i,0) * 45ms)}
+  .corpo.anima > *{animation:sobe var(--t-3) var(--e-out) both;animation-delay:calc(var(--i,0) * var(--passo-cascata))}
   @keyframes sobe{from{opacity:0;transform:translateY(10px)}}
 
   /* ---------- cards de asset ---------- */
@@ -283,7 +293,7 @@
     display:flex;align-items:center;gap:12px;padding:10px 12px;
     background:var(--s1);border:1px solid var(--line);border-radius:17px;
     box-shadow:var(--sombra),var(--topo);
-    animation:entraBarra 420ms 60ms var(--e-out) both;
+    animation:entraBarra var(--t-4) var(--espera-barra) var(--e-out) both;
   }
   @keyframes entraBarra{from{opacity:0;transform:translate(-50%,14px)}}
   .barra .ico{
