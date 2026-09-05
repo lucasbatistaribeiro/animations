@@ -37,7 +37,16 @@
     --accent:#f0f0f0;
     --accent-2:#fff;
     --accent-soft:rgba(255,255,255,.14);
+    /* --sombra e a das caixas: diz "isto esta SOBRE a arte". As tres de
+       baixo sao curtas, para peca pequena dentro de um card, e por isso
+       moram longe dela na rampa de profundidade. */
     --sombra:0 18px 44px -14px rgba(0,0,0,.6), 0 2px 10px rgba(0,0,0,.35);
+    --sombra-curta:0 8px 18px -8px rgba(0,0,0,.8);   /* a miniatura levantando */
+    --sombra-funda:0 6px 20px -8px rgba(0,0,0,.9);   /* a miniatura escolhida */
+    --sombra-peca:0 1px 5px rgba(0,0,0,.55);         /* o thumb, solto da trilha */
+    /* Este nao e sombra, e contorno: um anel escuro de 1px que faz um ponto
+       branco sobreviver a qualquer cor da rampa por baixo dele. */
+    --contorno:0 0 0 1px rgba(0,0,0,.4);
     --topo:inset 0 1px 0 rgba(255,255,255,.07);
     /* movimento */
     --e-out:cubic-bezier(.22,.61,.36,1);
@@ -181,10 +190,10 @@
     transition:transform var(--t-2) var(--e-out), border-color var(--t-2), box-shadow var(--t-2);
   }
   .capa canvas{width:100%;height:100%;display:block;transition:transform var(--t-3) var(--e-out)}
-  .capa:hover{transform:translateY(-2px);border-color:var(--line-2);box-shadow:0 8px 18px -8px rgba(0,0,0,.8)}
+  .capa:hover{transform:translateY(-2px);border-color:var(--line-2);box-shadow:var(--sombra-curta)}
   .capa:hover canvas{transform:scale(1.07)}
   .capa:active{transform:translateY(0) scale(.97);transition-duration:var(--t-1)}
-  .capa[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 6px 20px -8px rgba(0,0,0,.9)}
+  .capa[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--sombra-funda)}
   /* O visto diz qual template está no palco — a borda sozinha some quando a
      miniatura tem muita cor na quina.                                    */
   .capa[aria-pressed=true]::after{
@@ -224,16 +233,16 @@
   }
   input[type=range]::-webkit-slider-thumb{
     -webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;
-    background:#fff;border:0;box-shadow:0 1px 5px rgba(0,0,0,.55);
+    background:#fff;border:0;box-shadow:var(--sombra-peca);
     transition:transform var(--t-1) var(--e-out), box-shadow var(--t-1);
   }
   input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.2)}
-  input[type=range]:active::-webkit-slider-thumb{transform:scale(1.32);box-shadow:0 1px 5px rgba(0,0,0,.55),0 0 0 6px var(--accent-soft)}
+  input[type=range]:active::-webkit-slider-thumb{transform:scale(1.32);box-shadow:var(--sombra-peca),0 0 0 6px var(--accent-soft)}
   input[type=range]:focus-visible{outline:none}
-  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 1px 5px rgba(0,0,0,.55),0 0 0 5px var(--accent-soft)}
+  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:var(--sombra-peca),0 0 0 5px var(--accent-soft)}
   input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:var(--s3)}
   input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:var(--accent)}
-  input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.55)}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:#fff;box-shadow:var(--sombra-peca)}
 
   .seg{display:flex;gap:6px;flex-wrap:wrap}
   .seg button{
@@ -367,7 +376,7 @@
   .rampa button:hover{flex:1.35}
   .rampa button[aria-pressed=true]::after{
     content:'';position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;
-    border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.4);
+    border-radius:50%;background:#fff;box-shadow:var(--contorno);
     animation:visto var(--t-3) var(--e-mola) both;
   }
   .dica{margin-top:12px;font-size:11px;color:var(--dim);line-height:1.5}
