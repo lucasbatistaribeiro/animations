@@ -40,6 +40,7 @@ Os mesmos atalhos estão no rodapé do menu **Exportar** — descobrir um atalho
 .
 ├── index.html                    # o gerador — a home
 ├── test.html                     # teste de fumaça
+├── DESIGN.md                     # o inventário do design system da casca
 ├── LICENSE                       # MIT
 └── README.md
 ```
@@ -186,6 +187,8 @@ Nos templates 3D o export recorta pelo **guia de enquadramento**: o botão no ca
 
 ## A casca
 
+> O inventário completo — os 64 tokens, as 13 primitivas, os cinco estados, as cinco leis e o contraste medido de cada par — está em **[DESIGN.md](DESIGN.md)**. Aqui fica só o resumo.
+
 Escura, mas em **cinza médio** e com **elevação**: painel `#262626`, card `#333`, campo `#404040` — degraus de uma mesma rampa, em vez de três quase-pretos separados só pela borda. Cinza puro, sem viés de matiz: a única cor da tela é a arte gerada, e o acento da UI é claro (`#f0f0f0`), não colorido. Painel, barra e popovers são translúcidos com desfoque — a arte atravessa a casca, e a opacidade é 92% porque abaixo disso, com paleta clara atrás, o texto secundário cai de 4.5:1.
 
 O movimento é do sistema, não de cada componente: dois *easings* e três durações em variáveis CSS, usados em tudo. O que ele faz:
@@ -201,6 +204,8 @@ O movimento é do sistema, não de cada componente: dois *easings* e três dura�
 Refazer o painel não custa mais a rolagem nem o foco do teclado: cada controle carrega uma âncora (`data-fk`) e o `render` devolve os dois quando o conteúdo é o mesmo. E há **anel de foco** em tudo — antes dava para percorrer a UI inteira no teclado sem ver onde se estava.
 
 `prefers-reduced-motion` desliga todas as transições e animações. Movimento aqui é acabamento, nunca requisito.
+
+Cor, sombra, tempo, raio, tipo e espaço: **todo valor tem nome**. Não há número de estilo escrito à mão no CSS, no JS ou no markup — e o que fica de fora, fica documentado com o porquê em [DESIGN.md](DESIGN.md).
 
 ---
 

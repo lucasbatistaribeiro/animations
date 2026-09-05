@@ -119,6 +119,11 @@
     --f-6:12.5px;          /* rotulo, Exportar, aviso, item de menu, campo */
     --f-7:13px;            /* base do corpo */
     --f-8:13.5px;          /* aba, titulo de grupo */
+    /* O maior texto do painel: o nome do template, no topo do Editor. Existia
+       so num atributo style, e por isso nao aparecia em varredura nenhuma —
+       um nono degrau que ninguem tinha visto. Encostar em --f-8 e mudanca
+       visual, entao ele ganha nome em vez de ser ajustado a forca.       */
+    --f-9:14px;            /* nome do template */
 
     /* ---- espaco ----
        So o que se repete e carrega o compasso do layout: padding, gap e
@@ -293,12 +298,29 @@
   @keyframes visto{from{transform:scale(0);opacity:0}}
   .vazio{color:var(--dim);font-size:var(--f-5);padding:var(--esp-6) 2px;text-align:center;line-height:1.6}
   .vazio b{color:var(--txt);font-weight:600}
+  /* Estas quatro nasceram dentro de `style=` no JS, onde raio, tipo e espaco
+     ficavam fora do alcance de qualquer varredura — e onde --f-9 esteve
+     escondido esse tempo todo. Regra que elas fecham: estilo mora no CSS,
+     mesmo o de um elemento que so o JS cria.                            */
+  .limpar-busca{
+    display:block;margin:var(--esp-5) auto 0;padding:7px var(--esp-6);
+    border-radius:var(--r-5);background:var(--s3);color:var(--txt);
+    font-size:var(--f-4);border:1px solid var(--line);
+  }
+  .folga{height:var(--esp-4)}
+  .seg.solta{margin-top:var(--esp-4)}
+  .sortear{
+    color:var(--txt);font-size:var(--f-3);padding:0;
+    text-decoration:underline;text-underline-offset:2px;
+  }
 
   /* ---------- cards de controle ---------- */
   .ctl{background:var(--s2);border:1px solid var(--line);border-radius:var(--r-8);padding:var(--esp-6);box-shadow:var(--topo)}
   .ctl + .ctl{margin-top:0}
   .linha{display:flex;align-items:center;justify-content:space-between;gap:var(--esp-4);margin-bottom:var(--esp-3)}
+  .linha.rente{margin-bottom:0}
   .rotulo{font-size:var(--f-6);font-weight:600}
+  .rotulo.nome-template{font-size:var(--f-9)}
   .cabecalho{font-size:var(--f-3);font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
   .chip{
     min-width:44px;text-align:center;font-size:var(--f-3);font-variant-numeric:tabular-nums;
@@ -470,6 +492,7 @@
   }
 
   .pop h3{margin:0 0 var(--esp-5);font-size:var(--f-3);font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
+  .pop h3.afastado{margin-top:var(--esp-7)}
   .amostras{display:flex;flex-wrap:wrap;gap:var(--esp-4);align-items:center;margin-bottom:var(--esp-6)}
   .amostras button{
     width:42px;height:42px;border-radius:50%;border:2px solid transparent;
@@ -594,7 +617,7 @@
 <div class="pop" id="popPal" role="dialog" aria-label="Paleta">
   <h3>Paleta</h3>
   <div class="amostras" id="palAmostras"></div>
-  <h3 style="margin-top:16px">Acento</h3>
+  <h3 class="afastado">Acento</h3>
   <div class="rampa" id="palRampa"></div>
   <p class="dica">A bolinha marca a cor de acento. Clique num tom da rampa para trocar.</p>
 </div>
@@ -2116,7 +2139,7 @@ function renderAssets(){
     p.className = 'vazio';
     p.innerHTML = 'Nenhum template com <b>' + APP.busca.replace(/[<>&]/g, '') + '</b>.';
     const b = document.createElement('button');
-    b.style.cssText = 'display:block;margin:12px auto 0;padding:7px 14px;border-radius:10px;background:var(--s3);color:var(--txt);font-size:11.5px;border:1px solid var(--line)';
+    b.className = 'limpar-busca';
     b.textContent = 'Limpar busca';
     b.addEventListener('click', limparBusca);
     p.appendChild(b);
@@ -2186,7 +2209,7 @@ function renderEditor(){
   const atual = eng.layouts().find(l => l.key === eng.layout());
   const head = card(null);
   head.innerHTML =
-    '<div class="linha" style="margin:0"><span class="rotulo" style="font-size:14px">' + (atual ? atual.name : '') + '</span>' +
+    '<div class="linha rente"><span class="rotulo nome-template">' + (atual ? atual.name : '') + '</span>' +
     '<span class="chip">' + eng.id.toUpperCase() + '</span></div>';
   corpo.appendChild(head);
 
@@ -2231,7 +2254,7 @@ function renderEditor(){
     });
     sel.addEventListener('change', e => { eng.setMode(e.target.value); invalidate(); render(); });
     mov.appendChild(comSeta(sel));
-    mov.appendChild(document.createElement('div')).style.height = '10px';
+    mov.appendChild(document.createElement('div')).className = 'folga';
   }
   if (eng.toggles){
     const seg = document.createElement('div');
@@ -2245,7 +2268,7 @@ function renderEditor(){
       seg.appendChild(b);
     });
     mov.appendChild(seg);
-    mov.appendChild(document.createElement('div')).style.height = '10px';
+    mov.appendChild(document.createElement('div')).className = 'folga';
   }
   eng.motion().forEach(ctl => slider(mov, eng, ctl, (k, v) => eng.set(k, v)));
   corpo.appendChild(mov);
@@ -2263,8 +2286,7 @@ function renderEditor(){
   saida.appendChild(comSeta(sel));
   if (eng.drawGuide){
     const seg = document.createElement('div');
-    seg.className = 'seg';
-    seg.style.marginTop = '10px';
+    seg.className = 'seg solta';
     const b2 = document.createElement('button');
     b2.textContent = 'Guia de enquadramento';
     b2.dataset.fk = 'guia';
@@ -2279,7 +2301,7 @@ function renderEditor(){
   const nova = document.createElement('button');
   nova.textContent = 'sortear';
   nova.dataset.fk = 'semente';
-  nova.style.cssText = 'color:var(--txt);font-size:11px;padding:0;text-decoration:underline;text-underline-offset:2px';
+  nova.className = 'sortear';
   nova.addEventListener('click', () => { eng.reseed(); invalidate(); render(); aviso('Nova semente: ' + eng.seed()); });
   sub.appendChild(nova);
   saida.appendChild(sub);
