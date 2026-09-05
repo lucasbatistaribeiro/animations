@@ -30,7 +30,9 @@ Três consequências que valem como regra:
 - **Hover sobe exatamente um degrau** (`--s3` → `--s4`). Não há um token de hover por componente.
 - **Cinza médio, não quase-preto.** O escuro anterior lia como um buraco na tela, e separar duas superfícies exigia forçar a vista.
 
-As três superfícies flutuantes são **translúcidas** — `rgba(38,38,38,.92)` com `backdrop-filter: blur(22px) saturate(1.35)`, dentro de um `@supports`. A arte atravessa a casca, e a UI pesa menos sobre a composição. 92% e não menos porque abaixo disso, com paleta clara atrás, o texto secundário cai de 4.5:1 (seção 7).
+As três superfícies flutuantes são **declaradas translúcidas** — `color-mix(in srgb, var(--s1) 92%, transparent)` com `backdrop-filter: blur(22px) saturate(1.35)`, dentro de um `@supports`. A arte atravessa a casca, e a UI pesa menos sobre a composição. 92% e não menos porque abaixo disso, com paleta clara atrás, o texto secundário cai de 4.5:1 (seção 7).
+
+> **Hoje só o painel recebe.** As regras de `.barra` e `.pop` vêm depois do `@supports` no arquivo e, com a mesma especificidade, sobrescrevem o fundo de volta para o `--s1` opaco. As três continuam com o `backdrop-filter` — que, atrás de um fundo opaco, não faz nada. Ver Lacunas.
 
 ### Traço e texto
 
@@ -90,20 +92,15 @@ A barra muda de altura no estreito (o rótulo *Exportar* some, o padding encolhe
 
 ## 2. O que ainda não é token
 
-Esta seção é o passivo do sistema. Nada aqui está quebrado — está **fora do inventário**, que é como um DS pequeno começa a vazar. São onze entradas, e três delas duplicam um token que já existe.
+Esta seção é o passivo do sistema. Nada aqui está quebrado — está **fora do inventário**, que é como um DS pequeno começa a vazar. São oito entradas: as três duplicações de token que existiam aqui foram fechadas, e nenhum valor restante repete um token.
 
 O que **está** padronizado, e vale registrar com a mesma precisão: os vinte tokens são todos usados (não há token morto); nenhuma curva de easing aparece escrita à mão; e o JS da casca não escreve cor nenhuma — as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
 
 ### Valores fora da rampa
 
-As três primeiras linhas são **duplicação pura**: o valor já existe como token e mesmo assim está escrito à mão.
-
 | valor | onde | por quê está fora |
 |---|---|---|
-| `#262626` | `background` da `.barra` | **é `--s1` escrito à mão.** A barra é a única superfície que não lê o token da própria rampa |
-| `rgba(38,38,38,.92)` | fundo translúcido de `.painel`, `.pop` e `.barra`, duas vezes | **é `--s1` a 92%**, numa terceira grafia da mesma cor. Trocar `--s1` deixa a versão translúcida para trás |
 | `#1c1c1c` | fundo da `.capa`, tinta do `.chip.vivo` e do visto | é uma sexta superfície e, ao mesmo tempo, a "tinta escura sobre acento claro". Merece dois tokens, não um literal em três lugares |
-| `rgba(255,255,255,.14)` | anel interno de `.amostras button` | **é exatamente `--accent-soft`**, escrito à mão. Trocar o token não muda esse anel |
 | `#8f8f8f` | `::placeholder` do campo de busca | terceiro nível de texto que não existe como token (e o único par abaixo de 4.5:1 — seção 7) |
 | `#2e2e2e` | `select option` | a lista é desenhada pelo navegador; o valor mora perto de `--s1` mas não é ele |
 | `#303030` | borda das `.bolinhas` | recorte entre as bolinhas sobrepostas, calibrado contra `--s3` |
@@ -260,7 +257,8 @@ Os dois avisos são reais e estreitos:
 Em ordem de quanto custam:
 
 1. **Raio, tipo e espaço não são tokens.** São escalas por convenção, documentadas na seção 2. É a lacuna que mais provavelmente vira divergência.
-2. **Onze valores fora do inventário**, três deles duplicando um token que já existe — `#262626` e `rgba(38,38,38,.92)` são `--s1` em duas outras grafias, e `rgba(255,255,255,.14)` é `--accent-soft`. É a lacuna mais barata de fechar: são substituições diretas, sem mudança visual.
-3. **Não há tema claro.** A rampa suporta — é só inverter os cinco degraus —, mas os literais da seção 2 e os `rgba(0,0,0,…)` das sombras estão presos ao escuro.
-4. **O placeholder está abaixo de 4.5:1** (seção 7).
-5. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
+2. **A translucidez não chega à barra nem ao popover.** Está declarada para as três caixas, mas as regras dessas duas vêm depois do `@supports` e a sobrescrevem. Arrumar é mover o bloco — e é uma **mudança visual**, não uma limpeza: as duas passam a deixar a arte atravessar.
+3. **Oito valores fora do inventário** (seção 2). Nenhum duplica token; o que falta é nomear — sobretudo as quatro sombras curtas.
+4. **Não há tema claro.** A rampa suporta — é só inverter os cinco degraus —, mas os literais da seção 2 e os `rgba(0,0,0,…)` das sombras estão presos ao escuro.
+5. **O placeholder está abaixo de 4.5:1** (seção 7).
+6. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
