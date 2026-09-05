@@ -64,7 +64,7 @@ Os dois papéis são distintos e não se substituem: `--sombra` diz *"isto está
 
 ### Movimento
 
-Duas curvas e três durações, usadas em tudo. Não há duração local em lugar nenhum da casca.
+Duas curvas e três durações. As curvas são absolutas: **nenhuma `cubic-bezier` aparece escrita à mão** fora do `:root`. As durações têm três exceções, listadas na seção 2.
 
 | token | valor | quando |
 |---|---|---|
@@ -90,12 +90,18 @@ A barra muda de altura no estreito (o rótulo *Exportar* some, o padding encolhe
 
 ## 2. O que ainda não é token
 
-Esta seção é o passivo do sistema. Nada aqui está quebrado — está **fora do inventário**, que é como um DS pequeno começa a vazar.
+Esta seção é o passivo do sistema. Nada aqui está quebrado — está **fora do inventário**, que é como um DS pequeno começa a vazar. São onze entradas, e três delas duplicam um token que já existe.
+
+O que **está** padronizado, e vale registrar com a mesma precisão: os vinte tokens são todos usados (não há token morto); nenhuma curva de easing aparece escrita à mão; e o JS da casca não escreve cor nenhuma — as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
 
 ### Valores fora da rampa
 
+As três primeiras linhas são **duplicação pura**: o valor já existe como token e mesmo assim está escrito à mão.
+
 | valor | onde | por quê está fora |
 |---|---|---|
+| `#262626` | `background` da `.barra` | **é `--s1` escrito à mão.** A barra é a única superfície que não lê o token da própria rampa |
+| `rgba(38,38,38,.92)` | fundo translúcido de `.painel`, `.pop` e `.barra`, duas vezes | **é `--s1` a 92%**, numa terceira grafia da mesma cor. Trocar `--s1` deixa a versão translúcida para trás |
 | `#1c1c1c` | fundo da `.capa`, tinta do `.chip.vivo` e do visto | é uma sexta superfície e, ao mesmo tempo, a "tinta escura sobre acento claro". Merece dois tokens, não um literal em três lugares |
 | `rgba(255,255,255,.14)` | anel interno de `.amostras button` | **é exatamente `--accent-soft`**, escrito à mão. Trocar o token não muda esse anel |
 | `#8f8f8f` | `::placeholder` do campo de busca | terceiro nível de texto que não existe como token (e o único par abaixo de 4.5:1 — seção 7) |
@@ -103,7 +109,9 @@ Esta seção é o passivo do sistema. Nada aqui está quebrado — está **fora 
 | `#303030` | borda das `.bolinhas` | recorte entre as bolinhas sobrepostas, calibrado contra `--s3` |
 | `#555` / `#6b6b6b` | scrollbar | fora da rampa por serem cromo do navegador |
 | `#fff` | thumb do slider, borda da amostra ativa, ponto da rampa | branco puro proposital, não `--accent-2` por acaso — mas indistinguível dele hoje |
-| `0 8px 18px -8px rgba(0,0,0,.8)` | hover da `.capa` | uma segunda sombra, mais curta que `--sombra`, sem nome |
+| `0 8px 18px -8px rgba(0,0,0,.8)`<br>`0 6px 20px -8px rgba(0,0,0,.9)`<br>`0 1px 5px rgba(0,0,0,.55)`<br>`0 0 0 1px rgba(0,0,0,.4)` | hover e estado ligado da `.capa`, thumb do slider, ponto da rampa | quatro sombras curtas, em quatro opacidades de preto, todas fora de `--sombra` e todas sem nome |
+| `420ms` e `60ms` | animação de entrada da barra | as únicas durações da casca que não saem de `--t-1/2/3` |
+| `45ms` | passo da cascata dos cards (`--i * 45ms`) | é um **intervalo**, não uma duração — mas continua sendo um número de tempo sem token |
 
 ### Escalas que existem sem variável
 
@@ -252,7 +260,7 @@ Os dois avisos são reais e estreitos:
 Em ordem de quanto custam:
 
 1. **Raio, tipo e espaço não são tokens.** São escalas por convenção, documentadas na seção 2. É a lacuna que mais provavelmente vira divergência.
-2. **Oito valores fora da rampa**, um deles (`rgba(255,255,255,.14)`) duplicando um token existente.
+2. **Onze valores fora do inventário**, três deles duplicando um token que já existe — `#262626` e `rgba(38,38,38,.92)` são `--s1` em duas outras grafias, e `rgba(255,255,255,.14)` é `--accent-soft`. É a lacuna mais barata de fechar: são substituições diretas, sem mudança visual.
 3. **Não há tema claro.** A rampa suporta — é só inverter os cinco degraus —, mas os literais da seção 2 e os `rgba(0,0,0,…)` das sombras estão presos ao escuro.
 4. **O placeholder está abaixo de 4.5:1** (seção 7).
 5. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
