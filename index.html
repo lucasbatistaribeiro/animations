@@ -45,11 +45,13 @@
     --line:#4a4a4a;
     --line-2:#5e5e5e;      /* borda em hover */
     --txt:#f5f5f5;
-    --dim:#b5b5b5;         /* secundário: legível mesmo com fundo claro atrás */
-    /* Terceiro nivel de texto, e o unico par da UI abaixo de 4.5:1 (3.2). So
-       o placeholder o usa: ali o texto e dispensavel por definicao, e subi-lo
-       para --dim o faria deixar de se distinguir do que se digita.       */
-    --dim-2:#8f8f8f;
+    /* Tambem e a cor do placeholder. Existiu aqui um --dim-2 mais fraco, que
+       era o unico par da UI abaixo de 4.5:1 — e nao havia como consertar
+       mantendo o degrau: sobre --s3 o proprio --dim so alcanca 5.06, entao
+       qualquer valor que passasse os 4.5 ficaria a 1.11 de distancia dele,
+       diferenca que ninguem enxerga. O degrau era ficcao, e sumiu.
+       O que separa dica de texto digitado nao e ela: e --dim contra --txt. */
+    --dim:#b5b5b5;         /* secundário e dica: legível com fundo claro atrás */
     /* Cinza puro, sem viés de matiz: a única cor da tela é a arte gerada.
        O acento é claro, não colorido — em cinza médio o contraste vem do
        valor, e um acento de cor competiria com a composição atrás.       */
@@ -175,7 +177,6 @@
     --line-2:#b4b4b4;
     --txt:#1a1a1a;
     --dim:#5a5a5a;
-    --dim-2:#7a7a7a;       /* 3.38:1 — o mesmo papel fraco que no escuro */
     --accent:#1a1a1a;      /* o acento continua sendo o extremo da rampa */
     --accent-2:#000;
     --accent-soft:rgba(0,0,0,.10);
@@ -275,7 +276,7 @@
     padding:var(--esp-3) 34px;color:var(--txt);font:inherit;font-size:var(--f-6);line-height:18px;
     transition:background var(--t-2), border-color var(--t-2), box-shadow var(--t-2);
   }
-  .campo input::placeholder{color:var(--dim-2)}
+  .campo input::placeholder{color:var(--dim)}
   .campo input:hover{background:var(--s4)}
   .campo input:focus{outline:none;background:var(--s3);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
   /* Os dois ocupam o mesmo canto e nunca coexistem: a tecla enquanto o campo
