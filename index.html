@@ -98,18 +98,6 @@
   @supports (height:1dvh){
     .painel,.pop{max-height:calc(100dvh - var(--barra) - 24px)}
   }
-  @supports (backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px)){
-    .painel,.barra,.pop{
-      -webkit-backdrop-filter:blur(22px) saturate(1.35);
-      backdrop-filter:blur(22px) saturate(1.35);
-    }
-    /* A opacidade e derivada de --s1, nao uma terceira grafia dele: escrita a
-       mao, ela ficava para tras a cada troca da rampa. Navegador sem
-       color-mix descarta a declaracao e fica com o --s1 opaco da regra de
-       cima — perde a translucidez, nao a legibilidade. */
-    .painel,.pop,.barra{background:color-mix(in srgb, var(--s1) 92%, transparent)}
-  }
-
   .abas{display:flex;gap:24px;padding:16px 20px 0;border-bottom:1px solid var(--line);position:relative;flex:0 0 auto}
   .aba{
     display:flex;align-items:center;gap:7px;padding:0 2px 12px;
@@ -345,6 +333,26 @@
                visibility 0s linear var(--t-2);
   }
   .pop.on{opacity:1;visibility:visible;transform:none;transition-delay:0s}
+
+  /* ---------- o vidro das tres caixas ----------
+     ESTE BLOCO PRECISA VIR DEPOIS DAS TRES. Ele estava logo abaixo do
+     painel, e dali so alcancava o painel: `.barra` e `.pop` sao definidas
+     mais abaixo, com a mesma especificidade, e devolviam o fundo para o
+     --s1 opaco. As duas ficaram anos carregando um backdrop-filter que,
+     atras de fundo opaco, nao borra coisa nenhuma.
+     A opacidade sai DE --s1, e nao e uma segunda grafia dele: escrita a
+     mao, ficava para tras a cada troca da rampa. Navegador sem color-mix
+     descarta a declaracao e fica com o --s1 opaco — perde a translucidez,
+     nao a legibilidade. Os 92% sao o piso: abaixo disso, com paleta clara
+     atravessando, o texto secundario cai de 4.5:1.                     */
+  @supports (backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px)){
+    .painel,.barra,.pop{
+      -webkit-backdrop-filter:blur(22px) saturate(1.35);
+      backdrop-filter:blur(22px) saturate(1.35);
+      background:color-mix(in srgb, var(--s1) 92%, transparent);
+    }
+  }
+
   .pop h3{margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
   .amostras{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
   .amostras button{

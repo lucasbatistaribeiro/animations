@@ -30,9 +30,9 @@ Três consequências que valem como regra:
 - **Hover sobe exatamente um degrau** (`--s3` → `--s4`). Não há um token de hover por componente.
 - **Cinza médio, não quase-preto.** O escuro anterior lia como um buraco na tela, e separar duas superfícies exigia forçar a vista.
 
-As três superfícies flutuantes são **declaradas translúcidas** — `color-mix(in srgb, var(--s1) 92%, transparent)` com `backdrop-filter: blur(22px) saturate(1.35)`, dentro de um `@supports`. A arte atravessa a casca, e a UI pesa menos sobre a composição. 92% e não menos porque abaixo disso, com paleta clara atrás, o texto secundário cai de 4.5:1 (seção 7).
+As três superfícies flutuantes são **translúcidas** — `color-mix(in srgb, var(--s1) 92%, transparent)` com `backdrop-filter: blur(22px) saturate(1.35)`, dentro de um `@supports`. A arte atravessa a casca, e a UI pesa menos sobre a composição. 92% e não menos porque abaixo disso, com paleta clara atrás, o texto secundário cai de 4.5:1 (seção 7).
 
-> **Hoje só o painel recebe.** As regras de `.barra` e `.pop` vêm depois do `@supports` no arquivo e, com a mesma especificidade, sobrescrevem o fundo de volta para o `--s1` opaco. As três continuam com o `backdrop-filter` — que, atrás de um fundo opaco, não faz nada. Ver Lacunas.
+> **A posição desse bloco no arquivo é carga, não arrumação.** Ele precisa vir depois das três regras que sobrescreve: enquanto morava logo abaixo do painel, `.barra` e `.pop` — definidas mais abaixo, com a mesma especificidade — devolviam o fundo para o `--s1` opaco, e as duas carregavam um `backdrop-filter` que, atrás de fundo opaco, não borra nada.
 
 ### Traço e texto
 
@@ -257,8 +257,7 @@ Os dois avisos são reais e estreitos:
 Em ordem de quanto custam:
 
 1. **Raio, tipo e espaço não são tokens.** São escalas por convenção, documentadas na seção 2. É a lacuna que mais provavelmente vira divergência.
-2. **A translucidez não chega à barra nem ao popover.** Está declarada para as três caixas, mas as regras dessas duas vêm depois do `@supports` e a sobrescrevem. Arrumar é mover o bloco — e é uma **mudança visual**, não uma limpeza: as duas passam a deixar a arte atravessar.
-3. **Oito valores fora do inventário** (seção 2). Nenhum duplica token; o que falta é nomear — sobretudo as quatro sombras curtas.
-4. **Não há tema claro.** A rampa suporta — é só inverter os cinco degraus —, mas os literais da seção 2 e os `rgba(0,0,0,…)` das sombras estão presos ao escuro.
-5. **O placeholder está abaixo de 4.5:1** (seção 7).
-6. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
+2. **Oito valores fora do inventário** (seção 2). Nenhum duplica token; o que falta é nomear — sobretudo as quatro sombras curtas.
+3. **Não há tema claro.** A rampa suporta — é só inverter os cinco degraus —, mas os literais da seção 2 e os `rgba(0,0,0,…)` das sombras estão presos ao escuro.
+4. **O placeholder está abaixo de 4.5:1** (seção 7).
+5. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
