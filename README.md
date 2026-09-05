@@ -187,9 +187,9 @@ Nos templates 3D o export recorta pelo **guia de enquadramento**: o botão no ca
 
 ## A casca
 
-> O inventário completo — os 64 tokens, as 13 primitivas, os cinco estados, as cinco leis e o contraste medido de cada par — está em **[DESIGN.md](DESIGN.md)**. Aqui fica só o resumo.
+> O inventário completo — os 63 tokens, as 13 primitivas, os cinco estados, as cinco leis e o contraste medido de cada par — está em **[DESIGN.md](DESIGN.md)**. Aqui fica só o resumo.
 
-Tem **dois temas**. O `prefers-color-scheme` do sistema manda, e o botão de sol/lua na barra passa por cima — a escolha fica no navegador de quem visita, e não no link, porque um link compartilhado não deve impor o tema de quem o mandou. A rampa não inverte de valor, inverte de sentido: no escuro cada nível sobe, no claro cada nível desce, porque um campo dentro de um card é um recesso. São 24 dos 64 tokens redefinidos.
+Tem **dois temas**. O `prefers-color-scheme` do sistema manda, e o botão de sol/lua na barra passa por cima — a escolha fica no navegador de quem visita, e não no link, porque um link compartilhado não deve impor o tema de quem o mandou. A rampa não inverte de valor, inverte de sentido: no escuro cada nível sobe, no claro cada nível desce, porque um campo dentro de um card é um recesso. São 23 dos 63 tokens redefinidos.
 
 Escura por padrão, em **cinza médio** e com **elevação**: painel `#262626`, card `#333`, campo `#404040` — degraus de uma mesma rampa, em vez de três quase-pretos separados só pela borda. Cinza puro, sem viés de matiz: a única cor da tela é a arte gerada, e o acento da UI é claro (`#f0f0f0`), não colorido. Painel, barra e popovers são translúcidos com desfoque — a arte atravessa a casca, e a opacidade é 92% porque abaixo disso, com paleta clara atrás, o texto secundário cai de 4.5:1.
 

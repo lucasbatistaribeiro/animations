@@ -1,6 +1,6 @@
 # Design system da casca
 
-A casca do gerador é um design system pequeno e **fechado**: 64 tokens e 13 primitivas, tudo dentro de um `<style>` só, sem framework e sem build. Fechado quer dizer que **nada nele é escrito à mão duas vezes** — de cor, sombra, tempo, raio, tipo e espaço, todo valor tem nome. Ele é pequeno de vocabulário de propósito — a única cor da tela é a arte gerada, e uma UI com sistema de cor próprio competiria com ela.
+A casca do gerador é um design system pequeno e **fechado**: 63 tokens e 13 primitivas, tudo dentro de um `<style>` só, sem framework e sem build. Fechado quer dizer que **nada nele é escrito à mão duas vezes** — de cor, sombra, tempo, raio, tipo e espaço, todo valor tem nome. Ele é pequeno de vocabulário de propósito — a única cor da tela é a arte gerada, e uma UI com sistema de cor próprio competiria com ela.
 
 Este documento é o inventário do que existe hoje, com o porquê de cada decisão e **o que ainda não é token**. Os números aqui são lidos do `index.html`, não idealizados: onde a implementação foge do sistema, está escrito que foge.
 
@@ -10,7 +10,7 @@ Este documento é o inventário do que existe hoje, com o porquê de cada decis�
 
 ## 1. Tokens
 
-Sessenta e quatro variáveis em `:root`. A regra é curta: **se o valor já existe como token, ele não pode aparecer escrito à mão.** Hoje ela é cumprida no CSS inteiro; a seção 2 lista o que fica fora do inventário, e por que fica.
+Sessenta e três variáveis em `:root`. A regra é curta: **se o valor já existe como token, ele não pode aparecer escrito à mão.** Hoje ela é cumprida no CSS inteiro; a seção 2 lista o que fica fora do inventário, e por que fica.
 
 ### Superfície — uma rampa de elevação, não uma paleta
 
@@ -48,7 +48,7 @@ A rampa **não inverte de valor, inverte de sentido**. No escuro cada nível sob
 | `--s3` | `#404040` | `#e4e4e4` |
 | `--s4` | `#4d4d4d` | `#d8d8d8` |
 
-**24 dos 64 tokens** são redefinidos. Os outros 40 são os mesmos nos dois temas: movimento, as três escalas, `--contorno` e `--branco` — os dois últimos porque pintam objetos que vivem sobre a **arte**, não sobre a casca, e a arte não muda de tema.
+**23 dos 63 tokens** são redefinidos. Os outros 40 são os mesmos nos dois temas: movimento, as três escalas, `--contorno` e `--branco` — os dois últimos porque pintam objetos que vivem sobre a **arte**, não sobre a casca, e a arte não muda de tema.
 
 Três decisões que o tema claro obrigou a tomar, e que o escuro sozinho nunca teria revelado:
 
@@ -58,7 +58,7 @@ Três decisões que o tema claro obrigou a tomar, e que o escuro sozinho nunca t
 
 Quem decide o tema é o visitante, não a peça: a escolha mora no `localStorage`, e não no hash — um link compartilhado não deve impor o tema de quem o mandou. Enquanto ninguém escolheu, `prefers-color-scheme` manda, e continua mandando se o sistema mudar.
 
-O carimbo `data-tema` é posto por um script no `<head>`, antes do primeiro quadro — senão a página pisca escura antes de virar clara. E é **sempre** posto, nunca deixado em branco: com o carimbo garantido, o CSS precisa de um bloco de tokens só, em vez de repetir os mesmos 24 valores dentro de um `@media`.
+O carimbo `data-tema` é posto por um script no `<head>`, antes do primeiro quadro — senão a página pisca escura antes de virar clara. E é **sempre** posto, nunca deixado em branco: com o carimbo garantido, o CSS precisa de um bloco de tokens só, em vez de repetir os mesmos 23 valores dentro de um `@media`.
 
 ### Traço e texto
 
@@ -67,12 +67,13 @@ O carimbo `data-tema` é posto por um script no `<head>`, antes do primeiro quad
 | `--line` | `#4a4a4a` | borda de tudo que é caixa ou card; divisores |
 | `--line-2` | `#5e5e5e` | a mesma borda em hover ou em estado ligado |
 | `--txt` | `#f5f5f5` | texto primário |
-| `--dim` | `#b5b5b5` | secundário, rótulos caixa-alta, ícones em repouso |
-| `--dim-2` | `#8f8f8f` | **só o placeholder** |
+| `--dim` | `#b5b5b5` | secundário, rótulos caixa-alta, ícones em repouso — **e a dica do campo** |
 
 `--dim` é claro o bastante para continuar legível **com paleta clara atrás da translucidez** — é isso que define o valor, não o gosto.
 
-`--dim-2` é o único par da UI abaixo de 4.5:1 (3.2 — seção 7), e existe como token para que isso fique visível em vez de escondido num literal. Só o placeholder o usa: ali o texto é dispensável por definição, e subi-lo para `--dim` o faria deixar de se distinguir do que se digita.
+Existiu aqui um `--dim-2` mais fraco, e ele era o único par da UI abaixo de 4.5:1. **Não havia como consertá-lo mantendo o degrau**: sobre `--s3`, o próprio `--dim` só alcança 5.06:1 no escuro, então qualquer valor que passasse os 4.5 ficaria a 1.11:1 de distância dele — diferença que ninguém enxerga. O degrau era ficção, e sumiu junto com o token.
+
+O que separa a dica do texto digitado nunca foi ele: é `--dim` contra `--txt`, que são 1.88:1 no escuro e 2.52:1 no claro.
 
 ### Acento
 
@@ -214,7 +215,7 @@ A barra muda de altura no estreito (o rótulo *Exportar* some, o padding encolhe
 
 ## 2. O que fica fora, e por quê
 
-Os sessenta e quatro tokens são todos usados — não há token morto —, e de cor, sombra, tempo, raio e tipo **não sobrou um valor sequer** escrito à mão no CSS. O JS da casca também não escreve cor: as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
+Os sessenta e três tokens são todos usados — não há token morto —, e de cor, sombra, tempo, raio e tipo **não sobrou um valor sequer** escrito à mão no CSS. O JS da casca também não escreve cor: as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
 
 O que fica de fora é **espaço que não é compasso**, e fica por decisão, não por descuido:
 
@@ -309,7 +310,7 @@ Três decisões de movimento que são de sistema, não de componente:
 
 ## 6. Leis da casca
 
-Cinco invariantes. São elas que mantêm 64 tokens sendo um sistema, e não uma lista.
+Cinco invariantes. São elas que mantêm 63 tokens sendo um sistema, e não uma lista.
 
 1. **Uma caixa de cada vez.** Painel, paleta e menu são um estado só (`APP.caixa`), não três liga-desligas. Abrir uma fecha a outra, e a que entra **espera a que sai terminar de sair** — cruzar as duas animações ainda é ver duas caixas ao mesmo tempo, só que em movimento.
 2. **Tudo que a barra abre para 12px acima da barra**, centrado na horizontal. A caixa aparece perto do botão que a abriu e do que a fecha.
@@ -333,20 +334,20 @@ Valores reais dos pares que a UI usa, **nos dois temas** (WCAG 2.1, texto normal
 | `--dim` sobre `--s3` | 5.4:1 | 5.4:1 |
 | `--dim` sobre `--s1` **a 92%, com a arte no pior caso atrás** | 5.8:1 | 5.6:1 |
 | `--dim` sobre `--s4` | **4.1:1** ⚠️ | 4.8:1 |
-| `--dim-2` (placeholder) sobre `--s3` | **3.2:1** ⚠️ | **3.4:1** ⚠️ |
+| `--dim` (dica do campo) sobre `--s3` | 5.1:1 | 5.4:1 |
 
-Duas coisas que a tabela nos dois temas mostra e a de um tema só escondia:
+Sobrou **um** aviso, e só no escuro: `--dim` sobre `--s4`, em 4.1:1. Ele aparece como texto num lugar só — o `kbd` do atalho `/` dentro do campo de busca —, e esse `kbd` some assim que o campo recebe foco. Nos demais casos `--s4` é hover, e o hover sobe o texto para `--txt` junto. **No claro o mesmo par dá 4.8 e passa.**
 
-- **O tema claro conserta um dos dois avisos.** `--dim` sobre `--s4` passa de 4.1 para 4.8 — no claro, o par que faltava passa. Ele só aparece como **texto** no `kbd` do atalho `/` dentro do campo de busca, e esse `kbd` some assim que o campo recebe foco; nos demais casos `--s4` é hover, e o hover sobe o texto para `--txt` junto.
-- **O placeholder continua sendo o par mais fraco nos dois**, e por escolha: 3.2 no escuro, 3.4 no claro. `--dim-2` foi calibrado para guardar a mesma *distância* de `--dim` nos dois temas (1.58 e 1.61) — o papel dele é ser dispensável, e subi-lo o faria deixar de se distinguir do texto digitado.
+A tabela nos dois temas é o que torna isso visível: o par que falha num tema passa no outro, e é o mesmo token nos dois.
 
 ---
 
 ## 8. Lacunas conhecidas
 
-Duas, e as duas são decisão consciente. Saíram desta lista, nesta ordem: *"raio, tipo e espaço não são tokens"* e *"não há tema claro"* — esta última previa **onze** valores a redefinir, e a conta real deu **24**: a previsão contava as cinco sombras e os três tokens de tinta, e esquecia a rampa inteira e as três cores que não são superfície nossa.
+Uma, e ela não é nossa: é o `select` aberto, que quem desenha é o sistema. Saíram desta lista, nesta ordem: *"raio, tipo e espaço não são tokens"*, *"não há tema claro"* e *"o placeholder está abaixo de 4.5:1"*.
+
+A do tema claro previa **onze** valores a redefinir, e a conta real deu **23**: a previsão contava as cinco sombras e os três tokens de tinta, e esquecia a rampa inteira e as três cores que não são superfície nossa. E a do placeholder não se resolveu ajustando o valor, e sim **apagando o degrau**: ele não cabia na rampa.
 
 O que ficou no lugar delas não é dívida: os dois pares por decidir do raio (`5`/`6`, `11`/`12`) e os nove degraus de tipo para oito papéis são escolhas visuais.
 
-1. **O placeholder está abaixo de 4.5:1** (seção 7).
-2. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
+1. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
