@@ -1,6 +1,6 @@
 # Design system da casca
 
-A casca do gerador é um design system pequeno e **fechado**: 63 tokens e 13 primitivas, tudo dentro de um `<style>` só, sem framework e sem build. Fechado quer dizer que **nada nele é escrito à mão duas vezes** — de cor, sombra, tempo, raio, tipo e espaço, todo valor tem nome. Ele é pequeno de vocabulário de propósito — a única cor da tela é a arte gerada, e uma UI com sistema de cor próprio competiria com ela.
+A casca do gerador é um design system pequeno e **fechado**: 64 tokens e 13 primitivas, tudo dentro de um `<style>` só, sem framework e sem build. Fechado quer dizer que **nada nele é escrito à mão duas vezes** — de cor, sombra, tempo, raio, tipo e espaço, todo valor tem nome. Ele é pequeno de vocabulário de propósito — a única cor da tela é a arte gerada, e uma UI com sistema de cor próprio competiria com ela.
 
 Este documento é o inventário do que existe hoje, com o porquê de cada decisão e **o que ainda não é token**. Os números aqui são lidos do `index.html`, não idealizados: onde a implementação foge do sistema, está escrito que foge.
 
@@ -10,7 +10,7 @@ Este documento é o inventário do que existe hoje, com o porquê de cada decis�
 
 ## 1. Tokens
 
-Sessenta e três variáveis em `:root`. A regra é curta: **se o valor já existe como token, ele não pode aparecer escrito à mão.** Hoje ela é cumprida no CSS inteiro; a seção 2 lista o que fica fora do inventário, e por que fica.
+Sessenta e quatro variáveis em `:root`. A regra é curta: **se o valor já existe como token, ele não pode aparecer escrito à mão.** Hoje ela é cumprida no CSS inteiro; a seção 2 lista o que fica fora do inventário, e por que fica.
 
 ### Superfície — uma rampa de elevação, não uma paleta
 
@@ -152,8 +152,11 @@ Uma família só — `ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, A
 | `--f-6` | `12.5px` | 600 / 500 / 400 | rótulo de controle, *Exportar*, aviso, item de menu, campo |
 | `--f-7` | `13px` | 400 | base do corpo |
 | `--f-8` | `13.5px` | 600 | aba, título de grupo |
+| `--f-9` | `14px` | 600 | o nome do template, no topo do Editor |
 
-Oito degraus de meio em meio pixel, para sete papéis. Os meios existem porque a UI é pequena e meio pixel ali muda o peso da linha. E são só **três pesos** — 400, 600 e 700 —, com o 700 aparecendo exclusivamente em cabeçalho caixa-alta.
+Nove degraus de meio em meio pixel, para oito papéis. Os meios existem porque a UI é pequena e meio pixel ali muda o peso da linha. E são só **três pesos** — 400, 600 e 700 —, com o 700 aparecendo exclusivamente em cabeçalho caixa-alta.
+
+`--f-9` é o degrau mais novo, e chegou por um caminho que vale contar: ele **não existia no CSS**. Vivia num atributo `style` escrito pelo JS, e por isso não aparecia em varredura nenhuma — nem na que declarou a escala de tipo fechada. Encostá-lo em `--f-8` seria mudança visual; ele ganhou nome em vez de ser ajustado à força.
 
 ### Espaço — `--esp-1` a `--esp-9`
 
@@ -187,7 +190,7 @@ A barra muda de altura no estreito (o rótulo *Exportar* some, o padding encolhe
 
 ## 2. O que fica fora, e por quê
 
-Os sessenta e três tokens são todos usados — não há token morto —, e de cor, sombra, tempo, raio e tipo **não sobrou um valor sequer** escrito à mão no CSS. O JS da casca também não escreve cor: as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
+Os sessenta e quatro tokens são todos usados — não há token morto —, e de cor, sombra, tempo, raio e tipo **não sobrou um valor sequer** escrito à mão no CSS. O JS da casca também não escreve cor: as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
 
 O que fica de fora é **espaço que não é compasso**, e fica por decisão, não por descuido:
 
@@ -196,6 +199,12 @@ O que fica de fora é **espaço que não é compasso**, e fica por decisão, nã
 | **ajuste óptico** | `1`, `2`, `3`, `4`, `5`, `7px` | são correções dentro de uma peça — o `1px 5px` de um `kbd`, o `3px 9px` de um chip. Não são o compasso do layout, e pô-los na escala faria a escala mentir sobre o que ela é |
 | **medida derivada** | `34px` | o padding do campo de busca é o espaço que a lupa e o X ocupam, não uma escolha de ritmo. O irmão dele, o padding do `select`, virou `calc(var(--esp-4) * 2 + 12px)` — ali a conta fecha exata e o `calc` a mostra |
 | **forma** | `50%` | círculo não é raio |
+
+### Estilo mora no CSS, mesmo o que o JS cria
+
+O CSS estava limpo antes deste ponto, mas **o JS não**: cinco lugares montavam elementos com `style=` — um botão inteiro num `cssText`, dois espaçadores, o afastamento de um grupo de botões e um link. Um `<h3>` no markup fazia o mesmo. Juntos escondiam doze números, oito deles com token já existente, e um — `--f-9` — que não existia em lugar nenhum.
+
+Viraram quatro classes (`.limpar-busca`, `.folga`, `.seg.solta`, `.sortear`) e dois modificadores (`.linha.rente`, `.rotulo.nome-template`). A regra que isso fecha: **estilo mora no CSS, mesmo o de um elemento que só o JS cria** — senão a varredura mente, e foi exatamente o que aconteceu.
 
 ### O preço da última exceção
 
@@ -276,7 +285,7 @@ Três decisões de movimento que são de sistema, não de componente:
 
 ## 6. Leis da casca
 
-Cinco invariantes. São elas que mantêm 63 tokens sendo um sistema, e não uma lista.
+Cinco invariantes. São elas que mantêm 64 tokens sendo um sistema, e não uma lista.
 
 1. **Uma caixa de cada vez.** Painel, paleta e menu são um estado só (`APP.caixa`), não três liga-desligas. Abrir uma fecha a outra, e a que entra **espera a que sai terminar de sair** — cruzar as duas animações ainda é ver duas caixas ao mesmo tempo, só que em movimento.
 2. **Tudo que a barra abre para 12px acima da barra**, centrado na horizontal. A caixa aparece perto do botão que a abriu e do que a fecha.
