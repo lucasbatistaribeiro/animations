@@ -89,6 +89,52 @@
        card para o seguinte — e passo entre irmaos, nao tempo de ninguem. */
     --espera-barra:60ms;
     --passo-cascata:45ms;
+    /* ---- raio ----
+       Um degrau por tamanho de caixa: quanto maior a caixa, maior o raio. A
+       escala e densa de proposito nenhum — 5/6 e 11/12 sao pares que existem
+       porque ninguem decidiu entre eles, e agora da para VER isso. Colapsar
+       um par e mudanca visual, entao fica registrado, nao escondido.
+       O 50% dos circulos nao esta aqui: aquilo e forma, nao raio.        */
+    --r-1:2px;             /* a tinta sob a aba ativa */
+    --r-2:5px;             /* kbd, rolagem */
+    --r-3:6px;             /* code */
+    --r-4:8px;             /* o anel de foco */
+    --r-5:10px;            /* peca pequena: capa, marca, segmento, select, item */
+    --r-6:11px;            /* icone da barra */
+    --r-7:12px;            /* botao Exportar, rampa de tons */
+    --r-8:15px;            /* card */
+    --r-9:17px;            /* barra e popover */
+    --r-10:20px;           /* painel */
+    --r-pilula:999px;      /* campo, chip, aviso, trilha */
+
+    /* ---- tipo ----
+       Uma familia so, e oito degraus de meio em meio pixel. Os meios existem
+       porque a UI e pequena e meio pixel ali muda o peso da linha; sao eles
+       que fazem a escala ter oito degraus para sete papeis.               */
+    --f-1:10px;            /* kbd */
+    --f-2:10.5px;          /* code */
+    --f-3:11px;            /* cabecalho caixa-alta, chip, dica, atalhos */
+    --f-4:11.5px;          /* subtitulo de grupo, segmento */
+    --f-5:12px;            /* select, estado vazio */
+    --f-6:12.5px;          /* rotulo, Exportar, aviso, item de menu, campo */
+    --f-7:13px;            /* base do corpo */
+    --f-8:13.5px;          /* aba, titulo de grupo */
+
+    /* ---- espaco ----
+       So o que se repete e carrega o compasso do layout: padding, gap e
+       margem. Ficam de fora, de proposito, dois tipos de numero que nao sao
+       compasso — o ajuste optico dentro de uma peca (1, 2, 3, 4, 5, 7px) e a
+       medida DERIVADA, como o padding que abre buraco para um icone.      */
+    --esp-1:6px;
+    --esp-2:8px;
+    --esp-3:9px;
+    --esp-4:10px;
+    --esp-5:12px;
+    --esp-6:14px;
+    --esp-7:16px;
+    --esp-8:20px;
+    --esp-9:24px;
+
     /* quanto a barra ocupa a partir da base da tela — medido em JS, porque a
        altura dela depende do que cabe dentro. O valor aqui e so o de antes
        da primeira medicao. */
@@ -98,19 +144,19 @@
   html,body{height:100%;margin:0}
   body{
     background:var(--bg);color:var(--txt);overflow:hidden;
-    font:13px/1.45 ui-sans-serif,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font:var(--f-7)/1.45 ui-sans-serif,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased;
   }
   canvas#stage{position:fixed;inset:0;display:block}
   button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   ::-webkit-scrollbar{width:9px;height:9px}
-  ::-webkit-scrollbar-thumb{background:var(--rolagem);border-radius:5px;border:2px solid transparent;background-clip:content-box}
+  ::-webkit-scrollbar-thumb{background:var(--rolagem);border-radius:var(--r-2);border:2px solid transparent;background-clip:content-box}
   ::-webkit-scrollbar-thumb:hover{background:var(--rolagem-2);background-clip:content-box}
   ::-webkit-scrollbar-track{background:transparent}
 
   /* Um anel de foco só, para tudo. Antes não havia nenhum: dava para
      percorrer a UI inteira no teclado sem ver onde se estava.           */
-  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-4)}
   :focus:not(:focus-visible){outline:none}
 
   /* ---------- painel ---------- */
@@ -121,7 +167,7 @@
      dois eixos, boiava longe do botao que o abre e do que o fecha.      */
   .painel{
     position:fixed;left:50%;bottom:calc(var(--barra) + 12px);width:328px;z-index:5;
-    background:var(--s1);border:1px solid var(--line);border-radius:20px;
+    background:var(--s1);border:1px solid var(--line);border-radius:var(--r-10);
     display:flex;flex-direction:column;overflow:hidden;
     box-shadow:var(--sombra),var(--topo);
     transform:translateX(-50%);transform-origin:bottom center;
@@ -142,10 +188,10 @@
   @supports (height:1dvh){
     .painel,.pop{max-height:calc(100dvh - var(--barra) - 24px)}
   }
-  .abas{display:flex;gap:24px;padding:16px 20px 0;border-bottom:1px solid var(--line);position:relative;flex:0 0 auto}
+  .abas{display:flex;gap:var(--esp-9);padding:var(--esp-7) var(--esp-8) 0;border-bottom:1px solid var(--line);position:relative;flex:0 0 auto}
   .aba{
-    display:flex;align-items:center;gap:7px;padding:0 2px 12px;
-    font-size:13.5px;font-weight:600;color:var(--dim);
+    display:flex;align-items:center;gap:7px;padding:0 2px var(--esp-5);
+    font-size:var(--f-8);font-weight:600;color:var(--dim);
     transition:color var(--t-2) var(--e-out);
   }
   .aba:hover{color:var(--txt)}
@@ -156,11 +202,11 @@
      uma direção, em vez de piscar de um lugar para o outro.            */
   .tinta{
     position:absolute;left:0;bottom:-1px;height:2px;width:0;
-    background:var(--accent);border-radius:2px;
+    background:var(--accent);border-radius:var(--r-1);
     transition:transform var(--t-3) var(--e-out), width var(--t-3) var(--e-out);
   }
 
-  .busca{padding:14px 20px 4px;flex:0 0 auto}
+  .busca{padding:var(--esp-6) var(--esp-8) 4px;flex:0 0 auto}
   /* O campo e a caixa de referencia. Antes a lupa se posicionava contra o
      WRAPPER, que tem 14px de padding em cima e 4 embaixo: o meio dele nunca
      e o meio do campo, e a lupa ficava ~3px acima da linha do texto.     */
@@ -170,8 +216,8 @@
     width:14px;height:14px;color:var(--dim);pointer-events:none;
   }
   .campo input{
-    width:100%;background:var(--s3);border:1px solid transparent;border-radius:999px;
-    padding:9px 34px;color:var(--txt);font:inherit;font-size:12.5px;line-height:18px;
+    width:100%;background:var(--s3);border:1px solid transparent;border-radius:var(--r-pilula);
+    padding:var(--esp-3) 34px;color:var(--txt);font:inherit;font-size:var(--f-6);line-height:18px;
     transition:background var(--t-2), border-color var(--t-2), box-shadow var(--t-2);
   }
   .campo input::placeholder{color:var(--dim-2)}
@@ -195,13 +241,13 @@
      quando activeElement muda, e ficava preso em falso.                  */
   .campo:focus-within .atalho{opacity:0}
   .atalho kbd{
-    font:inherit;font-size:10px;background:var(--s4);border:1px solid var(--line);
-    border-radius:5px;padding:1px 6px;color:var(--dim);
+    font:inherit;font-size:var(--f-1);background:var(--s4);border:1px solid var(--line);
+    border-radius:var(--r-2);padding:1px var(--esp-1);color:var(--dim);
   }
   .limpar:hover{color:var(--txt)}
   .limpar svg{width:10px;height:10px}
 
-  .corpo{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:14px 20px 22px;display:flex;flex-direction:column;gap:14px}
+  .corpo{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:var(--esp-6) var(--esp-8) 22px;display:flex;flex-direction:column;gap:var(--esp-6)}
   /* A entrada em cascata só roda quando o conteúdo REALMENTE troca — trocar
      de aba, de template, de motor. Reanimar tudo a cada clique num toggle
      transformaria um ajuste fino numa piscada de tela inteira.          */
@@ -209,18 +255,18 @@
   @keyframes sobe{from{opacity:0;transform:translateY(10px)}}
 
   /* ---------- cards de asset ---------- */
-  .grupo{background:var(--s2);border:1px solid var(--line);border-radius:15px;padding:14px;box-shadow:var(--topo)}
-  .gcab{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+  .grupo{background:var(--s2);border:1px solid var(--line);border-radius:var(--r-8);padding:var(--esp-6);box-shadow:var(--topo)}
+  .gcab{display:flex;align-items:center;gap:11px;margin-bottom:var(--esp-5)}
   .gmarca{
-    width:32px;height:32px;border-radius:10px;background:var(--s3);
+    width:32px;height:32px;border-radius:var(--r-5);background:var(--s3);
     display:grid;place-items:center;color:var(--dim);flex:0 0 32px;
   }
   .gmarca svg{width:16px;height:16px}
-  .gtitulo{font-size:13.5px;font-weight:600;line-height:1.25;letter-spacing:.02em}
-  .gsub{font-size:11.5px;color:var(--dim);line-height:1.25}
-  .capas{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+  .gtitulo{font-size:var(--f-8);font-weight:600;line-height:1.25;letter-spacing:.02em}
+  .gsub{font-size:var(--f-4);color:var(--dim);line-height:1.25}
+  .capas{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--esp-3)}
   .capa{
-    position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;
+    position:relative;aspect-ratio:1;border-radius:var(--r-5);overflow:hidden;
     background:var(--poco);border:1px solid var(--line);padding:0;display:block;
     transition:transform var(--t-2) var(--e-out), border-color var(--t-2), box-shadow var(--t-2);
   }
@@ -245,32 +291,32 @@
     border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--s2);
   }
   @keyframes visto{from{transform:scale(0);opacity:0}}
-  .vazio{color:var(--dim);font-size:12px;padding:14px 2px;text-align:center;line-height:1.6}
+  .vazio{color:var(--dim);font-size:var(--f-5);padding:var(--esp-6) 2px;text-align:center;line-height:1.6}
   .vazio b{color:var(--txt);font-weight:600}
 
   /* ---------- cards de controle ---------- */
-  .ctl{background:var(--s2);border:1px solid var(--line);border-radius:15px;padding:14px;box-shadow:var(--topo)}
+  .ctl{background:var(--s2);border:1px solid var(--line);border-radius:var(--r-8);padding:var(--esp-6);box-shadow:var(--topo)}
   .ctl + .ctl{margin-top:0}
-  .linha{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
-  .rotulo{font-size:12.5px;font-weight:600}
-  .cabecalho{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
+  .linha{display:flex;align-items:center;justify-content:space-between;gap:var(--esp-4);margin-bottom:var(--esp-3)}
+  .rotulo{font-size:var(--f-6);font-weight:600}
+  .cabecalho{font-size:var(--f-3);font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
   .chip{
-    min-width:44px;text-align:center;font-size:11px;font-variant-numeric:tabular-nums;
-    color:var(--dim);background:var(--s3);border-radius:999px;padding:3px 9px;
+    min-width:44px;text-align:center;font-size:var(--f-3);font-variant-numeric:tabular-nums;
+    color:var(--dim);background:var(--s3);border-radius:var(--r-pilula);padding:3px var(--esp-3);
     transition:color var(--t-1), background var(--t-1), transform var(--t-2) var(--e-mola);
   }
   /* Enquanto o slider está sendo arrastado o número acende: o olho está no
      canvas, e o valor precisa se anunciar sem exigir um segundo olhar.  */
   .chip.vivo{color:var(--sobre-acento);background:var(--accent);transform:scale(1.08)}
-  .csub{font-size:11px;color:var(--dim);margin-top:10px;display:flex;align-items:center;gap:6px}
-  .csub code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--txt);background:var(--s3);padding:2px 6px;border-radius:6px;font-size:10.5px}
+  .csub{font-size:var(--f-3);color:var(--dim);margin-top:var(--esp-4);display:flex;align-items:center;gap:var(--esp-1)}
+  .csub code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--txt);background:var(--s3);padding:2px var(--esp-1);border-radius:var(--r-3);font-size:var(--f-2)}
 
   input[type=range]{
     -webkit-appearance:none;appearance:none;width:100%;height:18px;
     background:transparent;margin:0;display:block;cursor:pointer;
   }
   input[type=range]::-webkit-slider-runnable-track{
-    height:4px;border-radius:999px;
+    height:4px;border-radius:var(--r-pilula);
     background:linear-gradient(to right,var(--accent) 0 var(--fill,50%),var(--s3) var(--fill,50%) 100%);
   }
   input[type=range]::-webkit-slider-thumb{
@@ -282,14 +328,14 @@
   input[type=range]:active::-webkit-slider-thumb{transform:scale(1.32);box-shadow:var(--sombra-peca),0 0 0 6px var(--accent-soft)}
   input[type=range]:focus-visible{outline:none}
   input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:var(--sombra-peca),0 0 0 5px var(--accent-soft)}
-  input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:var(--s3)}
-  input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:var(--accent)}
+  input[type=range]::-moz-range-track{height:4px;border-radius:var(--r-pilula);background:var(--s3)}
+  input[type=range]::-moz-range-progress{height:4px;border-radius:var(--r-pilula);background:var(--accent)}
   input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:var(--branco);box-shadow:var(--sombra-peca)}
 
-  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg{display:flex;gap:var(--esp-1);flex-wrap:wrap}
   .seg button{
-    flex:1;min-width:58px;padding:8px 6px;border-radius:10px;background:var(--s3);
-    border:1px solid transparent;font-size:11.5px;color:var(--dim);
+    flex:1;min-width:58px;padding:var(--esp-2) var(--esp-1);border-radius:var(--r-5);background:var(--s3);
+    border:1px solid transparent;font-size:var(--f-4);color:var(--dim);
     transition:background var(--t-1), color var(--t-1), border-color var(--t-1), transform var(--t-1) var(--e-out);
   }
   .seg button:hover{background:var(--s4);color:var(--txt)}
@@ -302,8 +348,8 @@
      resto da casca. O padding da direita abre espaco para ela: sem isso um
      nome comprido corria por baixo.                                      */
   select{
-    width:100%;background-color:var(--s3);border:1px solid transparent;border-radius:10px;
-    padding:9px 32px 9px 10px;color:var(--txt);font:inherit;font-size:12px;cursor:pointer;
+    width:100%;background-color:var(--s3);border:1px solid transparent;border-radius:var(--r-5);
+    padding:var(--esp-3) calc(var(--esp-4) * 2 + 12px) var(--esp-3) var(--esp-4);color:var(--txt);font:inherit;font-size:var(--f-5);cursor:pointer;
     appearance:none;-webkit-appearance:none;
     transition:background-color var(--t-1), border-color var(--t-1);
   }
@@ -341,14 +387,14 @@
   /* ---------- barra de baixo ---------- */
   .barra{
     position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:6;
-    display:flex;align-items:center;gap:12px;padding:10px 12px;
-    background:var(--s1);border:1px solid var(--line);border-radius:17px;
+    display:flex;align-items:center;gap:var(--esp-5);padding:var(--esp-4) var(--esp-5);
+    background:var(--s1);border:1px solid var(--line);border-radius:var(--r-9);
     box-shadow:var(--sombra),var(--topo);
     animation:entraBarra var(--t-4) var(--espera-barra) var(--e-out) both;
   }
   @keyframes entraBarra{from{opacity:0;transform:translate(-50%,14px)}}
   .barra .ico{
-    width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:var(--dim);
+    width:36px;height:36px;border-radius:var(--r-6);display:grid;place-items:center;color:var(--dim);
     transition:background var(--t-1), color var(--t-1), transform var(--t-1) var(--e-out);
   }
   .barra .ico:hover{background:var(--s3);color:var(--txt)}
@@ -367,8 +413,8 @@
   #btMenu[aria-pressed=true] .l3{transform:rotate(-45deg) translateY(-5px)}
   .sep{width:1px;height:26px;background:var(--line)}
   .pal{
-    display:flex;align-items:center;gap:8px;padding:5px 9px 5px 6px;
-    border-radius:999px;background:var(--s3);
+    display:flex;align-items:center;gap:var(--esp-2);padding:5px var(--esp-3) 5px var(--esp-1);
+    border-radius:var(--r-pilula);background:var(--s3);
     transition:background var(--t-1), transform var(--t-1) var(--e-out);
   }
   .pal:hover{background:var(--s4)}
@@ -379,8 +425,8 @@
   .pal .seta{width:12px;height:12px;color:var(--dim);transition:transform var(--t-2) var(--e-out)}
   .pal[aria-expanded=true] .seta{transform:rotate(180deg)}
   .exportar{
-    display:flex;align-items:center;gap:9px;padding:9px 16px;border-radius:12px;
-    background:var(--s3);font-size:12.5px;font-weight:600;
+    display:flex;align-items:center;gap:var(--esp-3);padding:var(--esp-3) var(--esp-7);border-radius:var(--r-7);
+    background:var(--s3);font-size:var(--f-6);font-weight:600;
     transition:background var(--t-1), transform var(--t-1) var(--e-out), box-shadow var(--t-1);
   }
   .exportar:hover{background:var(--s4)}
@@ -393,7 +439,7 @@
      para posicionar deixa de depender de já estar visível.             */
   .pop{
     position:fixed;z-index:7;background:var(--s1);border:1px solid var(--line);
-    border-radius:17px;padding:16px;box-shadow:var(--sombra),var(--topo);
+    border-radius:var(--r-9);padding:var(--esp-7);box-shadow:var(--sombra),var(--topo);
     /* Ela abre em cima da barra, entao e da borda de baixo que cresce: com
        a origem no meio, a caixa se afastava do botao ao entrar.         */
     transform-origin:bottom center;
@@ -423,8 +469,8 @@
     }
   }
 
-  .pop h3{margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
-  .amostras{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+  .pop h3{margin:0 0 var(--esp-5);font-size:var(--f-3);font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
+  .amostras{display:flex;flex-wrap:wrap;gap:var(--esp-4);align-items:center;margin-bottom:var(--esp-6)}
   .amostras button{
     width:42px;height:42px;border-radius:50%;border:2px solid transparent;
     box-shadow:inset 0 0 0 1px var(--accent-soft);
@@ -432,7 +478,7 @@
   }
   .amostras button:hover{transform:scale(1.12)}
   .amostras button[aria-pressed=true]{border-color:var(--branco);transform:scale(1.06)}
-  .rampa{display:flex;height:44px;border-radius:12px;overflow:hidden}
+  .rampa{display:flex;height:44px;border-radius:var(--r-7);overflow:hidden}
   .rampa button{flex:1;border:0;position:relative;transition:flex var(--t-2) var(--e-out)}
   .rampa button:hover{flex:1.35}
   .rampa button[aria-pressed=true]::after{
@@ -440,24 +486,24 @@
     border-radius:50%;background:var(--branco);box-shadow:var(--contorno);
     animation:visto var(--t-3) var(--e-mola) both;
   }
-  .dica{margin-top:12px;font-size:11px;color:var(--dim);line-height:1.5}
+  .dica{margin-top:var(--esp-5);font-size:var(--f-3);color:var(--dim);line-height:1.5}
 
-  .menu{width:260px;padding:10px}
+  .menu{width:260px;padding:var(--esp-4)}
   .menu button{
-    display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;
-    padding:10px;border-radius:10px;font-size:12.5px;color:var(--txt);text-align:left;
+    display:flex;width:100%;align-items:center;justify-content:space-between;gap:var(--esp-5);
+    padding:var(--esp-4);border-radius:var(--r-5);font-size:var(--f-6);color:var(--txt);text-align:left;
     transition:background var(--t-1), padding-left var(--t-1) var(--e-out);
   }
-  .menu button:hover{background:var(--s3);padding-left:14px}
+  .menu button:hover{background:var(--s3);padding-left:var(--esp-6)}
   .menu button b{color:var(--dim);font-weight:400;font-variant-numeric:tabular-nums}
   .menu .div{height:1px;background:var(--line);margin:7px 4px}
   /* Os atalhos existiam desde sempre e não estavam escritos em lugar
      nenhum da tela — descobrir um atalho não pode depender do README.  */
-  .teclas{display:flex;flex-wrap:wrap;gap:6px 12px;padding:6px 10px 2px;font-size:11px;color:var(--dim)}
+  .teclas{display:flex;flex-wrap:wrap;gap:var(--esp-1) var(--esp-5);padding:var(--esp-1) var(--esp-4) 2px;font-size:var(--f-3);color:var(--dim)}
   .teclas span{display:flex;align-items:center;gap:5px}
   .teclas kbd{
-    font:inherit;font-size:10px;background:var(--s3);border:1px solid var(--line);
-    border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--txt);
+    font:inherit;font-size:var(--f-1);background:var(--s3);border:1px solid var(--line);
+    border-bottom-width:2px;border-radius:var(--r-2);padding:1px 5px;color:var(--txt);
   }
 
   /* ---------- aviso ---------- */
@@ -465,7 +511,7 @@
      efeito, e a segunda tentativa era o comportamento normal.          */
   .aviso{
     position:fixed;left:50%;bottom:88px;z-index:8;
-    padding:9px 16px;border-radius:999px;font-size:12.5px;font-weight:500;
+    padding:var(--esp-3) var(--esp-7);border-radius:var(--r-pilula);font-size:var(--f-6);font-weight:500;
     background:var(--s3);border:1px solid var(--line);box-shadow:var(--sombra);
     opacity:0;transform:translate(-50%,10px);pointer-events:none;
     transition:opacity var(--t-2) var(--e-out), transform var(--t-3) var(--e-mola);
@@ -477,7 +523,7 @@
        da camera e a barra de gestos: sem as safe areas a barra ficava por
        BAIXO do home indicator, e o primeiro toque era do sistema, nao nosso.
        --barra continua certa sozinha — medirBarra() le o valor ja resolvido. */
-    .barra{gap:8px;padding:8px;bottom:calc(16px + env(safe-area-inset-bottom, 0px))}
+    .barra{gap:var(--esp-2);padding:var(--esp-2);bottom:calc(16px + env(safe-area-inset-bottom, 0px))}
     .exportar span{display:none}
     /* Embaixo, no celular, estao a barra e a mao que a opera. O aviso sobe
        para o topo, onde nada disputa espaco com ele. */

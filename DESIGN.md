@@ -1,6 +1,6 @@
 # Design system da casca
 
-A casca do gerador é um design system pequeno e **fechado**: 35 tokens e 13 primitivas, tudo dentro de um `<style>` só, sem framework e sem build. Ele é pequeno de propósito — a única cor da tela é a arte gerada, e uma UI com sistema de cor próprio competiria com ela.
+A casca do gerador é um design system pequeno e **fechado**: 63 tokens e 13 primitivas, tudo dentro de um `<style>` só, sem framework e sem build. Fechado quer dizer que **nada nele é escrito à mão duas vezes** — de cor, sombra, tempo, raio, tipo e espaço, todo valor tem nome. Ele é pequeno de vocabulário de propósito — a única cor da tela é a arte gerada, e uma UI com sistema de cor próprio competiria com ela.
 
 Este documento é o inventário do que existe hoje, com o porquê de cada decisão e **o que ainda não é token**. Os números aqui são lidos do `index.html`, não idealizados: onde a implementação foge do sistema, está escrito que foge.
 
@@ -10,7 +10,7 @@ Este documento é o inventário do que existe hoje, com o porquê de cada decis�
 
 ## 1. Tokens
 
-Trinta e cinco variáveis em `:root`. A regra é curta: **se o valor já existe como token, ele não pode aparecer escrito à mão.** A seção 2 lista onde essa regra ainda não é cumprida.
+Sessenta e três variáveis em `:root`. A regra é curta: **se o valor já existe como token, ele não pode aparecer escrito à mão.** Hoje ela é cumprida no CSS inteiro; a seção 2 lista o que fica fora do inventário, e por que fica.
 
 ### Superfície — uma rampa de elevação, não uma paleta
 
@@ -118,6 +118,61 @@ Duas curvas e quatro durações, e nenhum número de tempo escrito à mão: **ne
 
 `--t-3` é lido **pelo JS** (`SAIDA`, em `abrir()`) para saber quanto esperar antes de abrir a próxima caixa. O token é a fonte; o JS não tem cópia do número. Mexer em `--t-3` acerta os dois lados.
 
+### Raio — `--r-1` a `--r-10`
+
+Um degrau por tamanho de caixa, e a regra é **quanto maior a caixa, maior o raio**.
+
+| token | valor | onde |
+|---|---|---|
+| `--r-1` | `2px` | a tinta sob a aba ativa |
+| `--r-2` | `5px` | `kbd`, rolagem |
+| `--r-3` | `6px` | `code` |
+| `--r-4` | `8px` | o anel de foco |
+| `--r-5` | `10px` | peça pequena: capa, marca do grupo, segmento, select, item de menu |
+| `--r-6` | `11px` | ícone da barra |
+| `--r-7` | `12px` | botão *Exportar*, rampa de tons |
+| `--r-8` | `15px` | card |
+| `--r-9` | `17px` | barra e popover |
+| `--r-10` | `20px` | painel |
+| `--r-pilula` | `999px` | campo, chip, botão da paleta, aviso, trilha do slider |
+
+Duas coisas que a escala **mostra por existir**: `5`/`6` e `11`/`12` são pares que ninguém decidiu — estavam lá antes de terem nome, e o nome os expôs. Colapsar um par é mudança visual, então fica registrado em vez de escondido. E o `50%` dos círculos não está aqui: aquilo é forma, não raio.
+
+### Tipo — `--f-1` a `--f-8`
+
+Uma família só — `ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif` —, e monoespaçada só em `.csub code`.
+
+| token | valor | peso | papel |
+|---|---|---|---|
+| `--f-1` | `10px` | 400 | `kbd` |
+| `--f-2` | `10.5px` | 400 | `code` |
+| `--f-3` | `11px` | 700 / 400 | cabeçalho caixa-alta (`letter-spacing:.09em`), chip, dica, atalhos |
+| `--f-4` | `11.5px` | 400 | subtítulo de grupo, botão de segmento |
+| `--f-5` | `12px` | 400 | select, estado vazio |
+| `--f-6` | `12.5px` | 600 / 500 / 400 | rótulo de controle, *Exportar*, aviso, item de menu, campo |
+| `--f-7` | `13px` | 400 | base do corpo |
+| `--f-8` | `13.5px` | 600 | aba, título de grupo |
+
+Oito degraus de meio em meio pixel, para sete papéis. Os meios existem porque a UI é pequena e meio pixel ali muda o peso da linha. E são só **três pesos** — 400, 600 e 700 —, com o 700 aparecendo exclusivamente em cabeçalho caixa-alta.
+
+### Espaço — `--esp-1` a `--esp-9`
+
+O compasso do layout: `padding`, `gap` e `margin`.
+
+| token | valor | onde |
+|---|---|---|
+| `--esp-1` | `6px` | gap entre segmentos |
+| `--esp-2` | `8px` | a barra no estreito |
+| `--esp-3` | `9px` | padding vertical dos campos |
+| `--esp-4` | `10px` | padding da barra, item de menu, gap das amostras |
+| `--esp-5` | `12px` | gap da barra, e a folga de toda caixa até ela |
+| `--esp-6` | `14px` | padding dos cards, gap do corpo |
+| `--esp-7` | `16px` | padding dos popovers |
+| `--esp-8` | `20px` | respiro lateral do painel |
+| `--esp-9` | `24px` | gap entre as abas |
+
+Nove degraus cobrem 52 das 73 medidas de espaço do arquivo. O que ficou de fora é a seção 2.
+
 ### Medida viva: `--barra`
 
 `--barra` (`80px` de partida) não é uma escolha de design: é **medido em JS** a cada `render()` por `medirBarra()`, e vale a altura da barra mais o quanto ela está afastada da base. Três coisas dependem dele:
@@ -130,11 +185,17 @@ A barra muda de altura no estreito (o rótulo *Exportar* some, o padding encolhe
 
 ---
 
-## 2. O que ainda não é token
+## 2. O que fica fora, e por quê
 
-De cor, sombra e tempo **não sobrou nada**: os trinta e cinco tokens são todos usados (não há token morto) e nenhum valor dessas três famílias aparece escrito à mão em lugar nenhum do CSS. O JS da casca também não escreve cor — as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
+Os sessenta e três tokens são todos usados — não há token morto —, e de cor, sombra, tempo, raio e tipo **não sobrou um valor sequer** escrito à mão no CSS. O JS da casca também não escreve cor: as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
 
-O que ainda não é token são as **escalas**: raio, tipo e espaço.
+O que fica de fora é **espaço que não é compasso**, e fica por decisão, não por descuido:
+
+| o que | valores | por quê |
+|---|---|---|
+| **ajuste óptico** | `1`, `2`, `3`, `4`, `5`, `7px` | são correções dentro de uma peça — o `1px 5px` de um `kbd`, o `3px 9px` de um chip. Não são o compasso do layout, e pô-los na escala faria a escala mentir sobre o que ela é |
+| **medida derivada** | `34px` | o padding do campo de busca é o espaço que a lupa e o X ocupam, não uma escolha de ritmo. O irmão dele, o padding do `select`, virou `calc(var(--esp-4) * 2 + 12px)` — ali a conta fecha exata e o `calc` a mostra |
+| **forma** | `50%` | círculo não é raio |
 
 ### O preço da última exceção
 
@@ -146,45 +207,6 @@ Tirá-las de lá custou estrutura, e vale registrar o quanto:
 - **O `select` ganhou um elemento em volta** (`.campo-select`), porque `select` não aceita pseudo-elemento. A seta mora nele.
 
 Nos dois casos o desenho vem de `mask-image` e a cor vem de `background-color`. Numa máscara **só a opacidade do SVG conta**, então o `%23000` que restou dentro das URIs não é cor: é só "opaco". Sem suporte a `mask` não há seta nem visto — o campo continua funcionando, e a capa escolhida continua com a borda de acento, que é o que informa.
-
-### Escalas que existem sem variável
-
-Raio, tipo e espaço **têm escala** — só não têm token. Elas são consistentes por convenção, e é isso que este documento fixa.
-
-**Raio** — uma escala inteira, e cada degrau significa um tamanho de caixa:
-
-| raio | onde |
-|---|---|
-| `20px` | painel |
-| `17px` | barra, popovers |
-| `15px` | cards (`.grupo`, `.ctl`) |
-| `12px` | botão *Exportar*, rampa de tons |
-| `11px` | ícones da barra |
-| `10px` | capa, marca do grupo, botão de segmento, select, item de menu |
-| `8px` | anel de foco |
-| `6px` / `5px` | `code`, `kbd` |
-| `999px` | campo de busca, chip, botão da paleta, aviso, trilha do slider |
-| `50%` | bolinhas, amostras, thumb, botão de limpar |
-
-Regra implícita: **quanto maior a caixa, maior o raio**; e o que é redondo (`999px`/`50%`) é sempre algo que se lê como pastilha ou como cor, nunca como painel.
-
-**Tipo** — uma família só, `ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`, base `13px/1.45`. Monoespaçada só em `.csub code`.
-
-| tamanho | peso | papel |
-|---|---|---|
-| `13.5px` | 600 | aba, título de grupo |
-| `13px` | 400 | base do corpo |
-| `12.5px` | 600 / 500 / 400 | rótulo de controle, *Exportar*, aviso, item de menu, campo |
-| `12px` | 400 | select, estado vazio |
-| `11.5px` | 400 | subtítulo de grupo, botão de segmento |
-| `11px` | 700 / 400 | cabeçalho caixa-alta (`letter-spacing: .09em`), chip, dica, atalhos |
-| `10.5px` / `10px` | 400 | `code`, `kbd` |
-
-Só três pesos: 400, 600 e 700 — e o 700 aparece **exclusivamente** em cabeçalho caixa-alta.
-
-**Espaço** — múltiplos de aproximadamente 2, entre 4 e 26px. Os valores estruturais: `24px` (gap das abas), `20px` (respiro lateral do painel), `16px` (padding dos popovers), `14px` (padding dos cards e gap do corpo), `12px` (gap da barra, e a folga de toda caixa até a barra), `9–10px` (padding interno de campos), `6px` (gap de segmentos).
-
-Tokenizar essas três escalas seria a próxima evolução honesta do sistema — e o custo de não fazê-lo já apareceu: a seta do `select` era desenhada pelo navegador a 4px da borda, enquanto o texto do mesmo campo respirava 10px.
 
 ---
 
@@ -254,7 +276,7 @@ Três decisões de movimento que são de sistema, não de componente:
 
 ## 6. Leis da casca
 
-Cinco invariantes. São elas que fazem 35 tokens bastarem.
+Cinco invariantes. São elas que mantêm 63 tokens sendo um sistema, e não uma lista.
 
 1. **Uma caixa de cada vez.** Painel, paleta e menu são um estado só (`APP.caixa`), não três liga-desligas. Abrir uma fecha a outra, e a que entra **espera a que sai terminar de sair** — cruzar as duas animações ainda é ver duas caixas ao mesmo tempo, só que em movimento.
 2. **Tudo que a barra abre para 12px acima da barra**, centrado na horizontal. A caixa aparece perto do botão que a abriu e do que a fecha.
@@ -291,9 +313,8 @@ Os dois avisos são reais e estreitos:
 
 ## 8. Lacunas conhecidas
 
-Em ordem de quanto custam:
+Em ordem de quanto custam. A primeira lacuna desta lista era *"raio, tipo e espaço não são tokens"* — saiu; no lugar ficaram os dois pares por decidir do raio (`5`/`6`, `11`/`12`) e os oito degraus de tipo para sete papéis, que são escolhas visuais, não dívida técnica.
 
-1. **Raio, tipo e espaço não são tokens.** São escalas por convenção, documentadas na seção 2. É a lacuna que mais provavelmente vira divergência.
-2. **Não há tema claro.** A rampa suporta — é só inverter os cinco degraus —, mas as cinco sombras são todas pretas, e `--poco`, `--sobre-acento` e `--branco` foram escolhidos contra fundo escuro. Agora que todos têm nome, dá para ver exatamente quantos valores um tema claro precisaria redefinir: onze.
-3. **O placeholder está abaixo de 4.5:1** (seção 7).
-4. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
+1. **Não há tema claro.** A rampa suporta — é só inverter os cinco degraus —, mas as cinco sombras são todas pretas, e `--poco`, `--sobre-acento` e `--branco` foram escolhidos contra fundo escuro. Agora que todos têm nome, dá para ver exatamente quantos valores um tema claro precisaria redefinir: onze.
+2. **O placeholder está abaixo de 4.5:1** (seção 7).
+3. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
