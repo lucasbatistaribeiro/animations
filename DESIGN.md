@@ -132,18 +132,20 @@ A barra muda de altura no estreito (o rótulo *Exportar* some, o padding encolhe
 
 ## 2. O que ainda não é token
 
-Esta seção é o passivo do sistema. Nada aqui está quebrado — está **fora do inventário**, que é como um DS pequeno começa a vazar. Sobraram **duas**, e as duas são a mesma exceção: **cor dentro de uma `data:` URI**, onde `var()` não alcança — para o CSS aquilo é uma string opaca, não um valor.
+De cor, sombra e tempo **não sobrou nada**: os trinta e cinco tokens são todos usados (não há token morto) e nenhum valor dessas três famílias aparece escrito à mão em lugar nenhum do CSS. O JS da casca também não escreve cor — as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
 
-O que **está** padronizado, e vale registrar com a mesma precisão: os trinta e cinco tokens são todos usados (não há token morto); **fora das duas URIs abaixo, não sobrou cor, sombra, duração nem curva escrita à mão** em lugar nenhum do CSS; e o JS da casca não escreve cor nenhuma — as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
+O que ainda não é token são as **escalas**: raio, tipo e espaço.
 
-### Valores fora da rampa
+### O preço da última exceção
 
-| valor | onde | por quê continua fora |
-|---|---|---|
-| `%231c1c1c` | traço do visto, dentro da `data:` URI de `.capa[aria-pressed=true]::after` | é `--sobre-acento`, e `var()` não entra numa URI |
-| `%23b5b5b5` | traço da seta, dentro da `data:` URI do `select` | é `--dim`, pelo mesmo motivo |
+As duas últimas cores à mão viviam dentro de `data:` URI, onde `var()` não alcança: para o CSS aquilo é uma string opaca, não um valor. Estavam percent-encoded (`%23` é `#`), e foi assim que escaparam da varredura, que procurava `#hex` e `rgba()`.
 
-As duas estão percent-encoded (`%23` é `#`), que foi como escaparam da varredura original — ela procurava `#hex` e `rgba()`. As duas só sairiam dali com uma mudança de estrutura: `mask-image` no lugar de `background-image`, o que no `select` exigiria um elemento a mais em volta, já que `select` não aceita pseudo-elemento. Enquanto isso, o CSS tem um comentário em cada um dos dois lugares dizendo de que token aquela cor é cópia.
+Tirá-las de lá custou estrutura, e vale registrar o quanto:
+
+- **O visto da capa virou dois pseudo-elementos.** São duas cores — o disco de `--accent` e o visto de `--sobre-acento` —, e uma imagem de fundo só desenhava as duas de uma vez. O disco é o `::before` e o visto é o `::after`, nessa ordem porque `::after` pinta por cima.
+- **O `select` ganhou um elemento em volta** (`.campo-select`), porque `select` não aceita pseudo-elemento. A seta mora nele.
+
+Nos dois casos o desenho vem de `mask-image` e a cor vem de `background-color`. Numa máscara **só a opacidade do SVG conta**, então o `%23000` que restou dentro das URIs não é cor: é só "opaco". Sem suporte a `mask` não há seta nem visto — o campo continua funcionando, e a capa escolhida continua com a borda de acento, que é o que informa.
 
 ### Escalas que existem sem variável
 
@@ -292,7 +294,6 @@ Os dois avisos são reais e estreitos:
 Em ordem de quanto custam:
 
 1. **Raio, tipo e espaço não são tokens.** São escalas por convenção, documentadas na seção 2. É a lacuna que mais provavelmente vira divergência.
-2. **Duas cores dentro de `data:` URI** (seção 2), que `var()` não alcança. São cópias de `--sobre-acento` e de `--dim` mantidas à mão, cada uma com um comentário ao lado dizendo isso.
-3. **Não há tema claro.** A rampa suporta — é só inverter os cinco degraus —, mas os literais da seção 2 e os `rgba(0,0,0,…)` das sombras estão presos ao escuro.
-4. **O placeholder está abaixo de 4.5:1** (seção 7).
-5. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
+2. **Não há tema claro.** A rampa suporta — é só inverter os cinco degraus —, mas as cinco sombras são todas pretas, e `--poco`, `--sobre-acento` e `--branco` foram escolhidos contra fundo escuro. Agora que todos têm nome, dá para ver exatamente quantos valores um tema claro precisaria redefinir: onze.
+3. **O placeholder está abaixo de 4.5:1** (seção 7).
+4. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.

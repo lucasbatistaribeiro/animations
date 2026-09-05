@@ -231,15 +231,18 @@
   .capa[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--sombra-funda)}
   /* O visto diz qual template está no palco — a borda sozinha some quando a
      miniatura tem muita cor na quina.                                    */
-  /* O `%231c1c1c` la dentro e --sobre-acento, e o `%23b5b5b5` do select e
-     --dim: var() NAO alcanca dentro de uma data URI, que para o CSS e uma
-     string opaca. Sao os dois unicos lugares da casca onde uma cor precisa
-     ser mantida a mao — mexeu no token, mexa aqui tambem.                */
+  /* Dois pseudo-elementos porque sao duas cores: o disco de --accent e o
+     visto de --sobre-acento por cima. ::before pinta ANTES de ::after, entao
+     o disco e o ::before — invertido, ele cobriria o visto. A alternativa
+     era um so, com o visto dentro de uma data URI: la a cor ficava presa,
+     porque var() nao entra numa URI, e era --sobre-acento copiado a mao. */
+  .capa[aria-pressed=true]::before,
   .capa[aria-pressed=true]::after{
-    content:'';position:absolute;right:5px;top:5px;width:14px;height:14px;border-radius:50%;
-    background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231c1c1c' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 13 4 4 10-10'/%3E%3C/svg%3E") center/9px no-repeat;
-    box-shadow:0 0 0 2px var(--s2);
+    content:'';position:absolute;right:5px;top:5px;width:14px;height:14px;
     animation:visto var(--t-3) var(--e-mola) both;
+  }
+  .capa[aria-pressed=true]::before{
+    border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--s2);
   }
   @keyframes visto{from{transform:scale(0);opacity:0}}
   .vazio{color:var(--dim);font-size:12px;padding:14px 2px;text-align:center;line-height:1.6}
@@ -302,9 +305,28 @@
     width:100%;background-color:var(--s3);border:1px solid transparent;border-radius:10px;
     padding:9px 32px 9px 10px;color:var(--txt);font:inherit;font-size:12px;cursor:pointer;
     appearance:none;-webkit-appearance:none;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b5b5b5' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat:no-repeat;background-position:right 10px center;background-size:12px 12px;
     transition:background-color var(--t-1), border-color var(--t-1);
+  }
+  /* O select nao aceita pseudo-elemento, entao a seta mora numa caixa em
+     volta — e o padding de 32px acima e o buraco que ela ocupa. */
+  .campo-select{position:relative;display:block}
+  /* Mascara, e nao imagem: a cor sai de um token e o desenho sai do SVG.
+     Numa data URI a cor ficava presa dentro da string. No mask so a opacidade
+     do SVG importa — o `%23000` la dentro nao e cor, e so "opaco".
+     Sem suporte a mask nao ha seta nem visto: o campo continua funcionando e
+     a capa escolhida continua com a borda de acento, que e o que informa. */
+  @supports (mask-image:url(#m)) or (-webkit-mask-image:url(#m)){
+    .campo-select::after{
+      content:'';position:absolute;right:10px;top:50%;width:12px;height:12px;margin-top:-6px;
+      background-color:var(--dim);pointer-events:none;
+      -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center/12px 12px no-repeat;
+      mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center/12px 12px no-repeat;
+    }
+    .capa[aria-pressed=true]::after{
+      background-color:var(--sobre-acento);
+      -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 13 4 4 10-10'/%3E%3C/svg%3E") center/9px 9px no-repeat;
+      mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 13 4 4 10-10'/%3E%3C/svg%3E") center/9px 9px no-repeat;
+    }
   }
   select:hover{background-color:var(--s4)}
   select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
@@ -2056,6 +2078,16 @@ function renderAssets(){
   }
 }
 
+/* O select nao aceita pseudo-elemento, e a seta precisa de um elemento nosso
+   para morar: dentro da data URI de um background-image ela era --dim copiado
+   a mao, e nenhuma troca do token a alcancava. */
+function comSeta(sel){
+  const caixa = document.createElement('span');
+  caixa.className = 'campo-select';
+  caixa.appendChild(sel);
+  return caixa;
+}
+
 /* ---------- aba Editor ---------- */
 function card(titulo){
   const d = document.createElement('div');
@@ -2152,7 +2184,7 @@ function renderEditor(){
       sel.appendChild(o);
     });
     sel.addEventListener('change', e => { eng.setMode(e.target.value); invalidate(); render(); });
-    mov.appendChild(sel);
+    mov.appendChild(comSeta(sel));
     mov.appendChild(document.createElement('div')).style.height = '10px';
   }
   if (eng.toggles){
@@ -2182,7 +2214,7 @@ function renderEditor(){
     sel.appendChild(o);
   });
   sel.addEventListener('change', e => { eng.setFormat(e.target.value); invalidate(); render(); });
-  saida.appendChild(sel);
+  saida.appendChild(comSeta(sel));
   if (eng.drawGuide){
     const seg = document.createElement('div');
     seg.className = 'seg';
