@@ -1,6 +1,6 @@
 # Design system da casca
 
-A casca do gerador é um design system pequeno e **fechado**: 20 tokens e 13 primitivas, tudo dentro de um `<style>` só, sem framework e sem build. Ele é pequeno de propósito — a única cor da tela é a arte gerada, e uma UI com sistema de cor próprio competiria com ela.
+A casca do gerador é um design system pequeno e **fechado**: 24 tokens e 13 primitivas, tudo dentro de um `<style>` só, sem framework e sem build. Ele é pequeno de propósito — a única cor da tela é a arte gerada, e uma UI com sistema de cor próprio competiria com ela.
 
 Este documento é o inventário do que existe hoje, com o porquê de cada decisão e **o que ainda não é token**. Os números aqui são lidos do `index.html`, não idealizados: onde a implementação foge do sistema, está escrito que foge.
 
@@ -10,7 +10,7 @@ Este documento é o inventário do que existe hoje, com o porquê de cada decis�
 
 ## 1. Tokens
 
-Vinte variáveis em `:root`. A regra é curta: **se o valor já existe como token, ele não pode aparecer escrito à mão.** A seção 2 lista onde essa regra ainda não é cumprida.
+Vinte e quatro variáveis em `:root`. A regra é curta: **se o valor já existe como token, ele não pode aparecer escrito à mão.** A seção 2 lista onde essa regra ainda não é cumprida.
 
 ### Superfície — uma rampa de elevação, não uma paleta
 
@@ -64,6 +64,17 @@ As três superfícies flutuantes são **translúcidas** — `color-mix(in srgb, 
 
 Os dois papéis são distintos e não se substituem: `--sombra` diz *"isto está sobre a arte"*; `--topo` é o fio de luz na aresta superior que diz *"isto é uma superfície, não um retângulo pintado"*.
 
+**As três curtas** são de outra ordem de grandeza: peça pequena dentro de um card, e não caixa flutuando sobre a arte. Por isso moram longe de `--sombra` na rampa de profundidade — não são versões dela.
+
+| token | valor | uso |
+|---|---|---|
+| `--sombra-curta` | `0 8px 18px -8px rgba(0,0,0,.8)` | a miniatura levantando no hover |
+| `--sombra-funda` | `0 6px 20px -8px rgba(0,0,0,.9)` | a miniatura escolhida, que assenta mais fundo |
+| `--sombra-peca` | `0 1px 5px rgba(0,0,0,.55)` | o thumb do slider, solto da trilha |
+| `--contorno` | `0 0 0 1px rgba(0,0,0,.4)` | **não é sombra, é contorno**: o anel escuro de 1px que faz um ponto branco sobreviver a qualquer cor da rampa por baixo dele |
+
+O último está aqui por morar na mesma propriedade, `box-shadow`, e não por fazer a mesma coisa. Chamá-lo de sombra seria a documentação repetindo um acidente do CSS.
+
 ### Movimento
 
 Duas curvas e três durações. As curvas são absolutas: **nenhuma `cubic-bezier` aparece escrita à mão** fora do `:root`. As durações têm três exceções, listadas na seção 2.
@@ -92,9 +103,9 @@ A barra muda de altura no estreito (o rótulo *Exportar* some, o padding encolhe
 
 ## 2. O que ainda não é token
 
-Esta seção é o passivo do sistema. Nada aqui está quebrado — está **fora do inventário**, que é como um DS pequeno começa a vazar. São oito entradas: as três duplicações de token que existiam aqui foram fechadas, e nenhum valor restante repete um token.
+Esta seção é o passivo do sistema. Nada aqui está quebrado — está **fora do inventário**, que é como um DS pequeno começa a vazar. São oito entradas — seis cores e duas de tempo. Nenhuma duplica um token, e nenhuma é de sombra: as quatro sombras curtas que estavam aqui já foram nomeadas.
 
-O que **está** padronizado, e vale registrar com a mesma precisão: os vinte tokens são todos usados (não há token morto); nenhuma curva de easing aparece escrita à mão; e o JS da casca não escreve cor nenhuma — as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
+O que **está** padronizado, e vale registrar com a mesma precisão: os vinte e quatro tokens são todos usados (não há token morto); nenhuma curva de easing aparece escrita à mão; e o JS da casca não escreve cor nenhuma — as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
 
 ### Valores fora da rampa
 
@@ -106,7 +117,6 @@ O que **está** padronizado, e vale registrar com a mesma precisão: os vinte to
 | `#303030` | borda das `.bolinhas` | recorte entre as bolinhas sobrepostas, calibrado contra `--s3` |
 | `#555` / `#6b6b6b` | scrollbar | fora da rampa por serem cromo do navegador |
 | `#fff` | thumb do slider, borda da amostra ativa, ponto da rampa | branco puro proposital, não `--accent-2` por acaso — mas indistinguível dele hoje |
-| `0 8px 18px -8px rgba(0,0,0,.8)`<br>`0 6px 20px -8px rgba(0,0,0,.9)`<br>`0 1px 5px rgba(0,0,0,.55)`<br>`0 0 0 1px rgba(0,0,0,.4)` | hover e estado ligado da `.capa`, thumb do slider, ponto da rampa | quatro sombras curtas, em quatro opacidades de preto, todas fora de `--sombra` e todas sem nome |
 | `420ms` e `60ms` | animação de entrada da barra | as únicas durações da casca que não saem de `--t-1/2/3` |
 | `45ms` | passo da cascata dos cards (`--i * 45ms`) | é um **intervalo**, não uma duração — mas continua sendo um número de tempo sem token |
 
@@ -217,7 +227,7 @@ Três decisões de movimento que são de sistema, não de componente:
 
 ## 6. Leis da casca
 
-Cinco invariantes. São elas que fazem 20 tokens bastarem.
+Cinco invariantes. São elas que fazem 24 tokens bastarem.
 
 1. **Uma caixa de cada vez.** Painel, paleta e menu são um estado só (`APP.caixa`), não três liga-desligas. Abrir uma fecha a outra, e a que entra **espera a que sai terminar de sair** — cruzar as duas animações ainda é ver duas caixas ao mesmo tempo, só que em movimento.
 2. **Tudo que a barra abre para 12px acima da barra**, centrado na horizontal. A caixa aparece perto do botão que a abriu e do que a fecha.
@@ -257,7 +267,7 @@ Os dois avisos são reais e estreitos:
 Em ordem de quanto custam:
 
 1. **Raio, tipo e espaço não são tokens.** São escalas por convenção, documentadas na seção 2. É a lacuna que mais provavelmente vira divergência.
-2. **Oito valores fora do inventário** (seção 2). Nenhum duplica token; o que falta é nomear — sobretudo as quatro sombras curtas.
+2. **Oito valores fora do inventário** (seção 2): seis cores e as duas durações da entrada da barra e da cascata. Nenhum duplica token, e cada um tem um motivo próprio para estar solto — o que falta é decidir se viram token ou se ficam como exceção assumida.
 3. **Não há tema claro.** A rampa suporta — é só inverter os cinco degraus —, mas os literais da seção 2 e os `rgba(0,0,0,…)` das sombras estão presos ao escuro.
 4. **O placeholder está abaixo de 4.5:1** (seção 7).
 5. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
