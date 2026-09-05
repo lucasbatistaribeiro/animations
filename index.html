@@ -6,9 +6,20 @@
 <title>Gerador — formas generativas</title>
 <meta name="description" content="Gerador de assets generativos: formas 2D e blocos extrudados 3D, direto no navegador.">
 <script>
-  /* Antes do CSS pintar: com a classe posta la no fim do body, a barra
-     aparecia por um quadro dentro do embed de quem so queria a arte. */
-  if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embed');
+  /* Antes do CSS pintar. Duas decisoes moram aqui pelo mesmo motivo: postas
+     no fim do body, a barra aparecia por um quadro dentro do embed, e a
+     pagina piscava escura antes de virar clara.
+     O tema e SEMPRE carimbado, nunca deixado em branco: com o carimbo, o CSS
+     precisa de um bloco de tokens so — `[data-tema=claro]` — em vez de
+     repetir os mesmos 24 valores dentro de um @media. */
+  (function(){
+    var raiz = document.documentElement;
+    if (new URLSearchParams(location.search).has('embed')) raiz.classList.add('embed');
+    var salvo = null;
+    try { salvo = localStorage.getItem('tema'); } catch (e){ /* modo privado: segue o sistema */ }
+    var claro = salvo ? salvo === 'claro' : matchMedia('(prefers-color-scheme: light)').matches;
+    raiz.dataset.tema = claro ? 'claro' : 'escuro';
+  })();
 </script>
 <style>
   /* ---------- tokens ----------
@@ -144,6 +155,45 @@
        altura dela depende do que cabe dentro. O valor aqui e so o de antes
        da primeira medicao. */
     --barra:80px;
+  }
+  /* ---------- tema claro ----------
+     A rampa nao inverte de valor, inverte de SENTIDO: no escuro cada nivel
+     sobe (mais claro = mais alto); no claro cada nivel desce (um campo
+     dentro de um card e um recesso). O que se conserva e a lei — cada nivel
+     continua legivel contra o pai, sem depender da borda.
+     24 dos 64 tokens sao redefinidos. Os outros 40 sao os mesmos nos dois
+     temas: movimento, escalas, --contorno e --branco, que pintam objetos
+     que vivem sobre a ARTE e nao sobre a casca.                        */
+  :root[data-tema="claro"]{
+    --bg:#e8e8e8;
+    --s1:#fbfbfb;          /* painel, barra, popovers */
+    --s2:#f0f0f0;          /* cards */
+    --s3:#e4e4e4;          /* chips, campos, botoes neutros */
+    --s4:#d8d8d8;          /* hover de s3 */
+    --poco:#dedede;        /* o poco da miniatura: recesso, nao elevacao */
+    --line:#d0d0d0;
+    --line-2:#b4b4b4;
+    --txt:#1a1a1a;
+    --dim:#5a5a5a;
+    --dim-2:#7a7a7a;       /* 3.38:1 — o mesmo papel fraco que no escuro */
+    --accent:#1a1a1a;      /* o acento continua sendo o extremo da rampa */
+    --accent-2:#000;
+    --accent-soft:rgba(0,0,0,.10);
+    --sobre-acento:#fbfbfb;/* a tinta sobre o acento inverte junto com ele */
+    --lista:#f7f7f7;
+    --recorte:#f4f4f4;     /* o corte entre as bolinhas: mais claro que --s3 */
+    --rolagem:#c4c4c4;
+    --rolagem-2:#a8a8a8;
+    /* Preto a 60% sobre fundo claro e uma mancha. A sombra aqui e a mesma
+       geometria com um quarto da tinta.                                 */
+    --sombra:0 18px 44px -14px rgba(0,0,0,.22), 0 2px 10px rgba(0,0,0,.10);
+    --sombra-curta:0 8px 18px -8px rgba(0,0,0,.28);
+    --sombra-funda:0 6px 20px -8px rgba(0,0,0,.34);
+    --sombra-peca:0 1px 5px rgba(0,0,0,.30);
+    /* O fio de luz na aresta de cima e um idioma de tema escuro: sobre uma
+       superficie quase branca ele nao existe. Vira um fio de sombra — mesma
+       aresta, sinal invertido.                                          */
+    --topo:inset 0 1px 0 rgba(0,0,0,.04);
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0}
@@ -433,6 +483,17 @@
   #btMenu[aria-pressed=true] .l1{transform:rotate(45deg) translateY(5px)}
   #btMenu[aria-pressed=true] .l2{opacity:0;transform:scaleX(.4)}
   #btMenu[aria-pressed=true] .l3{transform:rotate(-45deg) translateY(-5px)}
+  /* Sol e lua sao dois desenhos no mesmo quadro, e nao um innerHTML trocado:
+     assim a troca tem movimento, como a do hamburguer para o X. Cada um
+     mostra o tema que o clique VAI trazer, nao o que esta valendo.      */
+  #icoTema .sol,#icoTema .lua{
+    transform-origin:12px 12px;
+    transition:opacity var(--t-2) var(--e-out), transform var(--t-3) var(--e-mola);
+  }
+  #icoTema .sol{opacity:0;transform:scale(.4) rotate(-90deg)}
+  #icoTema .lua{opacity:1;transform:none}
+  :root[data-tema="claro"] #icoTema .sol{opacity:1;transform:none}
+  :root[data-tema="claro"] #icoTema .lua{opacity:0;transform:scale(.4) rotate(90deg)}
   .sep{width:1px;height:26px;background:var(--line)}
   .pal{
     display:flex;align-items:center;gap:var(--esp-2);padding:5px var(--esp-3) 5px var(--esp-1);
@@ -602,6 +663,12 @@
   </button>
   <button class="ico" id="btPlay" title="Pausar (espaço)" aria-label="Pausar">
     <svg id="icoPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+  </button>
+  <button class="ico" id="btTema" title="Tema claro" aria-label="Tema claro">
+    <svg id="icoTema" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <g class="sol"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g>
+      <path class="lua" d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/>
+    </svg>
   </button>
   <button class="pal" id="btPal" title="Paleta e acento" aria-label="Paleta e acento" aria-expanded="false">
     <span class="bolinhas" id="palBolinhas"></span>
@@ -2000,6 +2067,29 @@ const POPS = { pal:['popPal', 'btPal'], menu:['popMenu', 'btExport'] };
 /* Decidido no <head>, antes do primeiro quadro; aqui so se le o que ja foi
    decidido, para nao haver duas leituras da mesma pergunta. */
 const EMBED = document.documentElement.classList.contains('embed');
+
+/* ---------- tema ----------
+ * O carimbo ja veio do <head>. Daqui para frente ele so muda por clique, e a
+ * escolha e do VISITANTE, nao da peca: por isso mora no localStorage e nao no
+ * hash — um link compartilhado nao deve impor o tema de quem o mandou.
+ * Enquanto ninguem escolheu, o sistema manda, e continua mandando se mudar. */
+function tema(){ return document.documentElement.dataset.tema; }
+function trocarTema(){
+  const novo = tema() === 'claro' ? 'escuro' : 'claro';
+  document.documentElement.dataset.tema = novo;
+  try { localStorage.setItem('tema', novo); } catch (e){ /* sem memoria, vale a sessao */ }
+  render();
+}
+try {
+  const sistema = matchMedia('(prefers-color-scheme: light)');
+  sistema.addEventListener('change', e => {
+    let escolhido = null;
+    try { escolhido = localStorage.getItem('tema'); } catch (err){ /* ignora */ }
+    if (escolhido) return;                       // quem escolheu manda mais que o sistema
+    document.documentElement.dataset.tema = e.matches ? 'claro' : 'escuro';
+    render();
+  });
+} catch (e){ /* navegador sem matchMedia: fica no que o head carimbou */ }
 const ENGINES = { '2d': ENG2D, '3d': ENG3D };
 
 /* Reconcilia o tamanho a cada quadro em vez de confiar so no evento de
@@ -2555,6 +2645,11 @@ function render(){
   $('icoPlay').innerHTML = tocando
     ? '<path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/>'
     : '<path d="M8 5v14l11-7z"/>';
+  // O botao anuncia o DESTINO, nao o estado: e o que o clique vai fazer.
+  const rotTema = tema() === 'claro' ? 'Tema escuro' : 'Tema claro';
+  $('btTema').title = rotTema;
+  $('btTema').setAttribute('aria-label', rotTema);
+
   const rotPlay = (tocando ? 'Pausar' : 'Tocar') + ' (espaço)';
   $('btPlay').title = rotPlay;
   $('btPlay').setAttribute('aria-label', rotPlay);
@@ -2628,6 +2723,7 @@ $('limpar').addEventListener('click', limparBusca);
 
 $('btPlay').addEventListener('click', () => { APP.playing = !APP.playing; render(); });
 $('btMenu').addEventListener('click', () => abrir(APP.caixa === 'painel' ? null : 'painel'));
+$('btTema').addEventListener('click', trocarTema);
 
 /* ---------- as tres caixas ----------
  * Painel, paleta e menu abrem no mesmo lugar, entao sao UM estado e nao tres

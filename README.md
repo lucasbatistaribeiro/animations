@@ -10,7 +10,7 @@ A home **é** o gerador: canvas em tela cheia, barra de ações embaixo e, acima
 |---|---|
 | **Assets** | busca e os templates, agrupados em `2d` e `3d`. Cada miniatura é desenhada pelo próprio motor, então mostra o template de verdade |
 | **Editor** | os controles do template ativo, em cards: forma, câmera (no 3D), movimento e saída |
-| **Barra** | o hambúrguer esconde e mostra o painel; play/pause; paleta; e **Exportar**, que abre o menu de ações e lista os atalhos |
+| **Barra** | o hambúrguer esconde e mostra o painel; play/pause; sol/lua para o tema; paleta; e **Exportar**, que abre o menu de ações e lista os atalhos |
 
 Um arquivo HTML autocontido: sem dependências, sem build, sem servidor. Só os downloads exigem `http(s)`.
 
@@ -189,7 +189,9 @@ Nos templates 3D o export recorta pelo **guia de enquadramento**: o botão no ca
 
 > O inventário completo — os 64 tokens, as 13 primitivas, os cinco estados, as cinco leis e o contraste medido de cada par — está em **[DESIGN.md](DESIGN.md)**. Aqui fica só o resumo.
 
-Escura, mas em **cinza médio** e com **elevação**: painel `#262626`, card `#333`, campo `#404040` — degraus de uma mesma rampa, em vez de três quase-pretos separados só pela borda. Cinza puro, sem viés de matiz: a única cor da tela é a arte gerada, e o acento da UI é claro (`#f0f0f0`), não colorido. Painel, barra e popovers são translúcidos com desfoque — a arte atravessa a casca, e a opacidade é 92% porque abaixo disso, com paleta clara atrás, o texto secundário cai de 4.5:1.
+Tem **dois temas**. O `prefers-color-scheme` do sistema manda, e o botão de sol/lua na barra passa por cima — a escolha fica no navegador de quem visita, e não no link, porque um link compartilhado não deve impor o tema de quem o mandou. A rampa não inverte de valor, inverte de sentido: no escuro cada nível sobe, no claro cada nível desce, porque um campo dentro de um card é um recesso. São 24 dos 64 tokens redefinidos.
+
+Escura por padrão, em **cinza médio** e com **elevação**: painel `#262626`, card `#333`, campo `#404040` — degraus de uma mesma rampa, em vez de três quase-pretos separados só pela borda. Cinza puro, sem viés de matiz: a única cor da tela é a arte gerada, e o acento da UI é claro (`#f0f0f0`), não colorido. Painel, barra e popovers são translúcidos com desfoque — a arte atravessa a casca, e a opacidade é 92% porque abaixo disso, com paleta clara atrás, o texto secundário cai de 4.5:1.
 
 O movimento é do sistema, não de cada componente: dois *easings* e três durações em variáveis CSS, usados em tudo. O que ele faz:
 

@@ -36,6 +36,30 @@ As três superfícies flutuantes são **translúcidas** — `color-mix(in srgb, 
 
 > **A posição desse bloco no arquivo é carga, não arrumação.** Ele precisa vir depois das três regras que sobrescreve: enquanto morava logo abaixo do painel, `.barra` e `.pop` — definidas mais abaixo, com a mesma especificidade — devolviam o fundo para o `--s1` opaco, e as duas carregavam um `backdrop-filter` que, atrás de fundo opaco, não borra nada.
 
+### Os dois temas
+
+A rampa **não inverte de valor, inverte de sentido**. No escuro cada nível sobe: mais claro = mais alto. No claro cada nível desce, porque um campo dentro de um card é um recesso, não uma elevação. O que se conserva é a lei — cada nível continua legível contra o pai, sem depender da borda.
+
+| token | escuro | claro |
+|---|---|---|
+| `--bg` | `#161616` | `#e8e8e8` |
+| `--s1` | `#262626` | `#fbfbfb` |
+| `--s2` | `#333` | `#f0f0f0` |
+| `--s3` | `#404040` | `#e4e4e4` |
+| `--s4` | `#4d4d4d` | `#d8d8d8` |
+
+**24 dos 64 tokens** são redefinidos. Os outros 40 são os mesmos nos dois temas: movimento, as três escalas, `--contorno` e `--branco` — os dois últimos porque pintam objetos que vivem sobre a **arte**, não sobre a casca, e a arte não muda de tema.
+
+Três decisões que o tema claro obrigou a tomar, e que o escuro sozinho nunca teria revelado:
+
+- **O acento continua sendo o extremo da rampa**, e por isso vira `#1a1a1a` no claro. `--sobre-acento`, que é a tinta escrita *sobre* ele, inverte junto: `#fbfbfb`. Foi para isso que os dois existiam separados de `--poco` e de `--txt`.
+- **O fio de luz vira fio de sombra.** `--topo` é `inset 0 1px 0 rgba(255,255,255,.07)` no escuro — um idioma de tema escuro, que sobre uma superfície quase branca simplesmente não existe. No claro é `inset 0 1px 0 rgba(0,0,0,.04)`: a mesma aresta, o sinal invertido.
+- **Sombra preta a 60% sobre fundo claro é uma mancha.** As cinco sombras mantêm a geometria e perdem três quartos da tinta.
+
+Quem decide o tema é o visitante, não a peça: a escolha mora no `localStorage`, e não no hash — um link compartilhado não deve impor o tema de quem o mandou. Enquanto ninguém escolheu, `prefers-color-scheme` manda, e continua mandando se o sistema mudar.
+
+O carimbo `data-tema` é posto por um script no `<head>`, antes do primeiro quadro — senão a página pisca escura antes de virar clara. E é **sempre** posto, nunca deixado em branco: com o carimbo garantido, o CSS precisa de um bloco de tokens só, em vez de repetir os mesmos 24 valores dentro de um `@media`.
+
 ### Traço e texto
 
 | token | valor | uso |
@@ -297,33 +321,32 @@ Cinco invariantes. São elas que mantêm 64 tokens sendo um sistema, e não uma 
 
 ## 7. Contraste medido
 
-Valores reais dos pares que a UI usa (WCAG 2.1, texto normal exige 4.5:1; elemento gráfico, 3:1).
+Valores reais dos pares que a UI usa, **nos dois temas** (WCAG 2.1, texto normal exige 4.5:1; elemento gráfico, 3:1).
 
-| par | razão | |
+| par | escuro | claro |
 |---|---|---|
-| `--txt` sobre `--bg` | 16.6:1 | ✅ |
-| `--txt` sobre `--s1` | 13.9:1 | ✅ |
-| `--txt` sobre `--s2` | 11.6:1 | ✅ |
-| `--accent` sobre `--s1` | 13.3:1 | ✅ |
-| `#1c1c1c` sobre `--accent` (chip vivo) | 15.0:1 | ✅ |
-| `--dim` sobre `--s1` | 7.4:1 | ✅ |
-| `--dim` sobre `--s2` | 6.2:1 | ✅ |
-| `--dim` sobre `--s1` **a 92% com arte branca atrás** | 5.8:1 | ✅ — é este número que fixa a opacidade em 92% |
-| `--dim` sobre `--s3` | 5.1:1 | ✅ |
-| `--dim` sobre `--s4` | 4.1:1 | ⚠️ abaixo de 4.5 |
-| `#8f8f8f` (placeholder) sobre `--s3` | 3.2:1 | ⚠️ abaixo de 4.5 |
+| `--txt` sobre `--s1` | 13.9:1 | 16.8:1 |
+| `--accent` sobre `--s1` | 13.3:1 | 16.8:1 |
+| `--sobre-acento` sobre `--accent` (chip vivo) | 15.0:1 | 16.8:1 |
+| `--dim` sobre `--s1` | 7.4:1 | 6.7:1 |
+| `--dim` sobre `--s2` | 6.2:1 | 6.1:1 |
+| `--dim` sobre `--s3` | 5.4:1 | 5.4:1 |
+| `--dim` sobre `--s1` **a 92%, com a arte no pior caso atrás** | 5.8:1 | 5.6:1 |
+| `--dim` sobre `--s4` | **4.1:1** ⚠️ | 4.8:1 |
+| `--dim-2` (placeholder) sobre `--s3` | **3.2:1** ⚠️ | **3.4:1** ⚠️ |
 
-Os dois avisos são reais e estreitos:
+Duas coisas que a tabela nos dois temas mostra e a de um tema só escondia:
 
-- `--dim` sobre `--s4` só aparece como **texto** no `kbd` do atalho `/` dentro do campo de busca — e esse `kbd` some assim que o campo recebe foco. Nos demais casos `--s4` é hover, e o hover sobe o texto para `--txt` junto.
-- O placeholder é o par mais fraco da UI. Subi-lo para `--dim` resolveria (5.1:1) ao custo de ele deixar de se distinguir do texto digitado.
+- **O tema claro conserta um dos dois avisos.** `--dim` sobre `--s4` passa de 4.1 para 4.8 — no claro, o par que faltava passa. Ele só aparece como **texto** no `kbd` do atalho `/` dentro do campo de busca, e esse `kbd` some assim que o campo recebe foco; nos demais casos `--s4` é hover, e o hover sobe o texto para `--txt` junto.
+- **O placeholder continua sendo o par mais fraco nos dois**, e por escolha: 3.2 no escuro, 3.4 no claro. `--dim-2` foi calibrado para guardar a mesma *distância* de `--dim` nos dois temas (1.58 e 1.61) — o papel dele é ser dispensável, e subi-lo o faria deixar de se distinguir do texto digitado.
 
 ---
 
 ## 8. Lacunas conhecidas
 
-Em ordem de quanto custam. A primeira lacuna desta lista era *"raio, tipo e espaço não são tokens"* — saiu; no lugar ficaram os dois pares por decidir do raio (`5`/`6`, `11`/`12`) e os oito degraus de tipo para sete papéis, que são escolhas visuais, não dívida técnica.
+Duas, e as duas são decisão consciente. Saíram desta lista, nesta ordem: *"raio, tipo e espaço não são tokens"* e *"não há tema claro"* — esta última previa **onze** valores a redefinir, e a conta real deu **24**: a previsão contava as cinco sombras e os três tokens de tinta, e esquecia a rampa inteira e as três cores que não são superfície nossa.
 
-1. **Não há tema claro.** A rampa suporta — é só inverter os cinco degraus —, mas as cinco sombras são todas pretas, e `--poco`, `--sobre-acento` e `--branco` foram escolhidos contra fundo escuro. Agora que todos têm nome, dá para ver exatamente quantos valores um tema claro precisaria redefinir: onze.
-2. **O placeholder está abaixo de 4.5:1** (seção 7).
-3. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
+O que ficou no lugar delas não é dívida: os dois pares por decidir do raio (`5`/`6`, `11`/`12`) e os nove degraus de tipo para oito papéis são escolhas visuais.
+
+1. **O placeholder está abaixo de 4.5:1** (seção 7).
+2. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.
