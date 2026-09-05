@@ -1,6 +1,6 @@
 # Design system da casca
 
-A casca do gerador é um design system pequeno e **fechado**: 27 tokens e 13 primitivas, tudo dentro de um `<style>` só, sem framework e sem build. Ele é pequeno de propósito — a única cor da tela é a arte gerada, e uma UI com sistema de cor próprio competiria com ela.
+A casca do gerador é um design system pequeno e **fechado**: 35 tokens e 13 primitivas, tudo dentro de um `<style>` só, sem framework e sem build. Ele é pequeno de propósito — a única cor da tela é a arte gerada, e uma UI com sistema de cor próprio competiria com ela.
 
 Este documento é o inventário do que existe hoje, com o porquê de cada decisão e **o que ainda não é token**. Os números aqui são lidos do `index.html`, não idealizados: onde a implementação foge do sistema, está escrito que foge.
 
@@ -10,7 +10,7 @@ Este documento é o inventário do que existe hoje, com o porquê de cada decis�
 
 ## 1. Tokens
 
-Vinte e sete variáveis em `:root`. A regra é curta: **se o valor já existe como token, ele não pode aparecer escrito à mão.** A seção 2 lista onde essa regra ainda não é cumprida.
+Trinta e cinco variáveis em `:root`. A regra é curta: **se o valor já existe como token, ele não pode aparecer escrito à mão.** A seção 2 lista onde essa regra ainda não é cumprida.
 
 ### Superfície — uma rampa de elevação, não uma paleta
 
@@ -23,6 +23,8 @@ Preto sobre preto não separa painel de card de campo: a UI inteira vira uma man
 | `--s2` | `#333` | 2 — o que está dentro | cards (`.grupo`, `.ctl`) |
 | `--s3` | `#404040` | 3 — o que se opera | campos, chips, botões neutros, `kbd` |
 | `--s4` | `#4d4d4d` | 4 — o dedo em cima | hover de tudo que é `--s2`/`--s3` |
+
+Fora da rampa, e por isso listado à parte: `--poco` (`#1c1c1c`) **não é um degrau, é um buraco**. A miniatura é desenhada dentro do card, e o poço precisa ser mais claro que `--bg` — senão o card parece furado até o fundo da página.
 
 Três consequências que valem como regra:
 
@@ -42,8 +44,11 @@ As três superfícies flutuantes são **translúcidas** — `color-mix(in srgb, 
 | `--line-2` | `#5e5e5e` | a mesma borda em hover ou em estado ligado |
 | `--txt` | `#f5f5f5` | texto primário |
 | `--dim` | `#b5b5b5` | secundário, rótulos caixa-alta, ícones em repouso |
+| `--dim-2` | `#8f8f8f` | **só o placeholder** |
 
 `--dim` é claro o bastante para continuar legível **com paleta clara atrás da translucidez** — é isso que define o valor, não o gosto.
+
+`--dim-2` é o único par da UI abaixo de 4.5:1 (3.2 — seção 7), e existe como token para que isso fique visível em vez de escondido num literal. Só o placeholder o usa: ali o texto é dispensável por definição, e subi-lo para `--dim` o faria deixar de se distinguir do que se digita.
 
 ### Acento
 
@@ -52,8 +57,24 @@ As três superfícies flutuantes são **translúcidas** — `color-mix(in srgb, 
 | `--accent` | `#f0f0f0` | tinta da aba ativa, trilha preenchida do slider, anel de foco, chip vivo |
 | `--accent-2` | `#fff` | texto de um controle ligado (`.seg`, `.exportar`) |
 | `--accent-soft` | `rgba(255,255,255,.14)` | fundo de estado ligado e halo de foco |
+| `--sobre-acento` | `#1c1c1c` | a tinta escura que se escreve **sobre** o acento claro: o número do chip vivo e o visto da capa |
+| `--branco` | `#fff` | o thumb do slider, a borda da amostra escolhida, o ponto da rampa |
+
+`--sobre-acento` tem o mesmo valor de `--poco` e é outro token de propósito: um é superfície, o outro é tinta, e eles não mudam juntos.
+
+`--branco` é branco puro e **não** `--accent-2`, apesar de hoje serem indistinguíveis. Os três lugares onde ele aparece são objetos que precisam ler como *branco* sobre qualquer cor da arte por baixo; se o acento um dia deixar de ser branco, eles não devem acompanhar.
 
 **Cinza puro, sem viés de matiz.** Em cinza médio o contraste vem do valor, não do tom; um acento colorido competiria com a composição atrás e mudaria de significado a cada paleta da arte.
+
+### Três que não são superfície nossa
+
+| token | valor | o que é |
+|---|---|---|
+| `--lista` | `#2e2e2e` | a lista aberta do `select`, que quem desenha é o sistema — este é o único valor que a casca consegue dar a ela |
+| `--recorte` | `#303030` | o corte entre as bolinhas sobrepostas da paleta, calibrado contra `--s3` |
+| `--rolagem` / `--rolagem-2` | `#555` / `#6b6b6b` | a barra de rolagem, e ela em hover |
+
+Estão no inventário porque estavam soltas no arquivo, não porque pertençam à rampa. O nome é o que registra que não pertencem.
 
 ### Sombra e realce
 
@@ -111,20 +132,18 @@ A barra muda de altura no estreito (o rótulo *Exportar* some, o padding encolhe
 
 ## 2. O que ainda não é token
 
-Esta seção é o passivo do sistema. Nada aqui está quebrado — está **fora do inventário**, que é como um DS pequeno começa a vazar. São seis entradas, **todas cor**. Nenhuma duplica um token, e não sobra nada de sombra nem de tempo: as quatro sombras curtas e os três números de tempo que estavam aqui já foram nomeados.
+Esta seção é o passivo do sistema. Nada aqui está quebrado — está **fora do inventário**, que é como um DS pequeno começa a vazar. Sobraram **duas**, e as duas são a mesma exceção: **cor dentro de uma `data:` URI**, onde `var()` não alcança — para o CSS aquilo é uma string opaca, não um valor.
 
-O que **está** padronizado, e vale registrar com a mesma precisão: os vinte e sete tokens são todos usados (não há token morto); nenhuma curva de easing aparece escrita à mão; e o JS da casca não escreve cor nenhuma — as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
+O que **está** padronizado, e vale registrar com a mesma precisão: os trinta e cinco tokens são todos usados (não há token morto); **fora das duas URIs abaixo, não sobrou cor, sombra, duração nem curva escrita à mão** em lugar nenhum do CSS; e o JS da casca não escreve cor nenhuma — as cores que existem no script são as paletas da arte, que são dado dos motores, não superfície.
 
 ### Valores fora da rampa
 
-| valor | onde | por quê está fora |
+| valor | onde | por quê continua fora |
 |---|---|---|
-| `#1c1c1c` | fundo da `.capa`, tinta do `.chip.vivo` e do visto | é uma sexta superfície e, ao mesmo tempo, a "tinta escura sobre acento claro". Merece dois tokens, não um literal em três lugares |
-| `#8f8f8f` | `::placeholder` do campo de busca | terceiro nível de texto que não existe como token (e o único par abaixo de 4.5:1 — seção 7) |
-| `#2e2e2e` | `select option` | a lista é desenhada pelo navegador; o valor mora perto de `--s1` mas não é ele |
-| `#303030` | borda das `.bolinhas` | recorte entre as bolinhas sobrepostas, calibrado contra `--s3` |
-| `#555` / `#6b6b6b` | scrollbar | fora da rampa por serem cromo do navegador |
-| `#fff` | thumb do slider, borda da amostra ativa, ponto da rampa | branco puro proposital, não `--accent-2` por acaso — mas indistinguível dele hoje |
+| `%231c1c1c` | traço do visto, dentro da `data:` URI de `.capa[aria-pressed=true]::after` | é `--sobre-acento`, e `var()` não entra numa URI |
+| `%23b5b5b5` | traço da seta, dentro da `data:` URI do `select` | é `--dim`, pelo mesmo motivo |
+
+As duas estão percent-encoded (`%23` é `#`), que foi como escaparam da varredura original — ela procurava `#hex` e `rgba()`. As duas só sairiam dali com uma mudança de estrutura: `mask-image` no lugar de `background-image`, o que no `select` exigiria um elemento a mais em volta, já que `select` não aceita pseudo-elemento. Enquanto isso, o CSS tem um comentário em cada um dos dois lugares dizendo de que token aquela cor é cópia.
 
 ### Escalas que existem sem variável
 
@@ -233,7 +252,7 @@ Três decisões de movimento que são de sistema, não de componente:
 
 ## 6. Leis da casca
 
-Cinco invariantes. São elas que fazem 27 tokens bastarem.
+Cinco invariantes. São elas que fazem 35 tokens bastarem.
 
 1. **Uma caixa de cada vez.** Painel, paleta e menu são um estado só (`APP.caixa`), não três liga-desligas. Abrir uma fecha a outra, e a que entra **espera a que sai terminar de sair** — cruzar as duas animações ainda é ver duas caixas ao mesmo tempo, só que em movimento.
 2. **Tudo que a barra abre para 12px acima da barra**, centrado na horizontal. A caixa aparece perto do botão que a abriu e do que a fecha.
@@ -273,7 +292,7 @@ Os dois avisos são reais e estreitos:
 Em ordem de quanto custam:
 
 1. **Raio, tipo e espaço não são tokens.** São escalas por convenção, documentadas na seção 2. É a lacuna que mais provavelmente vira divergência.
-2. **Seis cores fora do inventário** (seção 2). Nenhuma duplica token, e cada uma tem um motivo próprio para estar solta — o que falta é decidir se viram token ou se ficam como exceção assumida.
+2. **Duas cores dentro de `data:` URI** (seção 2), que `var()` não alcança. São cópias de `--sobre-acento` e de `--dim` mantidas à mão, cada uma com um comentário ao lado dizendo isso.
 3. **Não há tema claro.** A rampa suporta — é só inverter os cinco degraus —, mas os literais da seção 2 e os `rgba(0,0,0,…)` das sombras estão presos ao escuro.
 4. **O placeholder está abaixo de 4.5:1** (seção 7).
 5. **`select option` não é estilizável** de forma confiável fora do Chromium; a lista aberta é do sistema.

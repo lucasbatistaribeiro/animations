@@ -27,16 +27,41 @@
     --s2:#333;             /* cards */
     --s3:#404040;          /* chips, campos, botões neutros */
     --s4:#4d4d4d;          /* hover de s3 */
+    /* Nao e um degrau da rampa: e um BURACO nela. A miniatura e desenhada
+       dentro do card, e o poco precisa ser mais claro que --bg, senao o card
+       parece furado ate o fundo da pagina.                               */
+    --poco:#1c1c1c;
     --line:#4a4a4a;
     --line-2:#5e5e5e;      /* borda em hover */
     --txt:#f5f5f5;
     --dim:#b5b5b5;         /* secundário: legível mesmo com fundo claro atrás */
+    /* Terceiro nivel de texto, e o unico par da UI abaixo de 4.5:1 (3.2). So
+       o placeholder o usa: ali o texto e dispensavel por definicao, e subi-lo
+       para --dim o faria deixar de se distinguir do que se digita.       */
+    --dim-2:#8f8f8f;
     /* Cinza puro, sem viés de matiz: a única cor da tela é a arte gerada.
        O acento é claro, não colorido — em cinza médio o contraste vem do
        valor, e um acento de cor competiria com a composição atrás.       */
     --accent:#f0f0f0;
     --accent-2:#fff;
     --accent-soft:rgba(255,255,255,.14);
+    /* A tinta escura que se escreve SOBRE o acento claro: o numero do chip
+       vivo e o visto da capa. Mesmo valor de --poco, papel diferente — um e
+       superficie, o outro e tinta, e eles nao mudam juntos.              */
+    --sobre-acento:#1c1c1c;
+    /* Branco puro, e NAO --accent-2: estes tres — o thumb, a borda da amostra
+       escolhida e o ponto da rampa — sao objetos que precisam ler como branco
+       sobre qualquer cor da arte por baixo. Se o acento um dia deixar de ser
+       branco, eles nao devem acompanhar.                                 */
+    --branco:#fff;
+    /* Tres cores que nao pertencem a rampa porque nao sao superficie nossa:
+       a lista aberta do select e desenhada pelo sistema e so aceita este
+       valor; o recorte e o corte entre as bolinhas sobrepostas, calibrado
+       contra --s3; e a rolagem e cromo do navegador.                     */
+    --lista:#2e2e2e;
+    --recorte:#303030;
+    --rolagem:#555;
+    --rolagem-2:#6b6b6b;    /* ...em hover */
     /* --sombra e a das caixas: diz "isto esta SOBRE a arte". As tres de
        baixo sao curtas, para peca pequena dentro de um card, e por isso
        moram longe dela na rampa de profundidade. */
@@ -79,8 +104,8 @@
   canvas#stage{position:fixed;inset:0;display:block}
   button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   ::-webkit-scrollbar{width:9px;height:9px}
-  ::-webkit-scrollbar-thumb{background:#555;border-radius:5px;border:2px solid transparent;background-clip:content-box}
-  ::-webkit-scrollbar-thumb:hover{background:#6b6b6b;background-clip:content-box}
+  ::-webkit-scrollbar-thumb{background:var(--rolagem);border-radius:5px;border:2px solid transparent;background-clip:content-box}
+  ::-webkit-scrollbar-thumb:hover{background:var(--rolagem-2);background-clip:content-box}
   ::-webkit-scrollbar-track{background:transparent}
 
   /* Um anel de foco só, para tudo. Antes não havia nenhum: dava para
@@ -149,7 +174,7 @@
     padding:9px 34px;color:var(--txt);font:inherit;font-size:12.5px;line-height:18px;
     transition:background var(--t-2), border-color var(--t-2), box-shadow var(--t-2);
   }
-  .campo input::placeholder{color:#8f8f8f}
+  .campo input::placeholder{color:var(--dim-2)}
   .campo input:hover{background:var(--s4)}
   .campo input:focus{outline:none;background:var(--s3);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
   /* Os dois ocupam o mesmo canto e nunca coexistem: a tecla enquanto o campo
@@ -196,7 +221,7 @@
   .capas{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
   .capa{
     position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;
-    background:#1c1c1c;border:1px solid var(--line);padding:0;display:block;
+    background:var(--poco);border:1px solid var(--line);padding:0;display:block;
     transition:transform var(--t-2) var(--e-out), border-color var(--t-2), box-shadow var(--t-2);
   }
   .capa canvas{width:100%;height:100%;display:block;transition:transform var(--t-3) var(--e-out)}
@@ -206,6 +231,10 @@
   .capa[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--sombra-funda)}
   /* O visto diz qual template está no palco — a borda sozinha some quando a
      miniatura tem muita cor na quina.                                    */
+  /* O `%231c1c1c` la dentro e --sobre-acento, e o `%23b5b5b5` do select e
+     --dim: var() NAO alcanca dentro de uma data URI, que para o CSS e uma
+     string opaca. Sao os dois unicos lugares da casca onde uma cor precisa
+     ser mantida a mao — mexeu no token, mexa aqui tambem.                */
   .capa[aria-pressed=true]::after{
     content:'';position:absolute;right:5px;top:5px;width:14px;height:14px;border-radius:50%;
     background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231c1c1c' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 13 4 4 10-10'/%3E%3C/svg%3E") center/9px no-repeat;
@@ -229,7 +258,7 @@
   }
   /* Enquanto o slider está sendo arrastado o número acende: o olho está no
      canvas, e o valor precisa se anunciar sem exigir um segundo olhar.  */
-  .chip.vivo{color:#1c1c1c;background:var(--accent);transform:scale(1.08)}
+  .chip.vivo{color:var(--sobre-acento);background:var(--accent);transform:scale(1.08)}
   .csub{font-size:11px;color:var(--dim);margin-top:10px;display:flex;align-items:center;gap:6px}
   .csub code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--txt);background:var(--s3);padding:2px 6px;border-radius:6px;font-size:10.5px}
 
@@ -243,7 +272,7 @@
   }
   input[type=range]::-webkit-slider-thumb{
     -webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;
-    background:#fff;border:0;box-shadow:var(--sombra-peca);
+    background:var(--branco);border:0;box-shadow:var(--sombra-peca);
     transition:transform var(--t-1) var(--e-out), box-shadow var(--t-1);
   }
   input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.2)}
@@ -252,7 +281,7 @@
   input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:var(--sombra-peca),0 0 0 5px var(--accent-soft)}
   input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:var(--s3)}
   input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:var(--accent)}
-  input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:#fff;box-shadow:var(--sombra-peca)}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:var(--branco);box-shadow:var(--sombra-peca)}
 
   .seg{display:flex;gap:6px;flex-wrap:wrap}
   .seg button{
@@ -279,7 +308,7 @@
   }
   select:hover{background-color:var(--s4)}
   select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-  select option{background:#2e2e2e;color:var(--txt)}
+  select option{background:var(--lista);color:var(--txt)}
 
   /* ---------- embed ----------
      Com ?embed a pagina e so a arte. Quem recebe o iframe ja tem a UI do
@@ -323,7 +352,7 @@
   .pal:hover{background:var(--s4)}
   .pal:active{transform:scale(.96)}
   .bolinhas{display:flex}
-  .bolinhas i{width:22px;height:22px;border-radius:50%;border:2px solid #303030;transition:background var(--t-3) var(--e-out)}
+  .bolinhas i{width:22px;height:22px;border-radius:50%;border:2px solid var(--recorte);transition:background var(--t-3) var(--e-out)}
   .bolinhas i + i{margin-left:-9px}
   .pal .seta{width:12px;height:12px;color:var(--dim);transition:transform var(--t-2) var(--e-out)}
   .pal[aria-expanded=true] .seta{transform:rotate(180deg)}
@@ -380,13 +409,13 @@
     transition:transform var(--t-2) var(--e-mola), border-color var(--t-1);
   }
   .amostras button:hover{transform:scale(1.12)}
-  .amostras button[aria-pressed=true]{border-color:#fff;transform:scale(1.06)}
+  .amostras button[aria-pressed=true]{border-color:var(--branco);transform:scale(1.06)}
   .rampa{display:flex;height:44px;border-radius:12px;overflow:hidden}
   .rampa button{flex:1;border:0;position:relative;transition:flex var(--t-2) var(--e-out)}
   .rampa button:hover{flex:1.35}
   .rampa button[aria-pressed=true]::after{
     content:'';position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;
-    border-radius:50%;background:#fff;box-shadow:var(--contorno);
+    border-radius:50%;background:var(--branco);box-shadow:var(--contorno);
     animation:visto var(--t-3) var(--e-mola) both;
   }
   .dica{margin-top:12px;font-size:11px;color:var(--dim);line-height:1.5}
