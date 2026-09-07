@@ -1,6 +1,6 @@
 # Gerador
 
-Gerador de assets generativos — formas 2D e blocos extrudados em 3D — inspirado no sistema generativo do rebrand da Stack Overflow.
+Gerador de assets generativos — formas 2D e blocos extrudados em 3D.
 
 **▶ [lucasbatistaribeiro.github.io/animations](https://lucasbatistaribeiro.github.io/animations/)**
 
